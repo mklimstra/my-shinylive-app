@@ -100,8 +100,8 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
 
 # Optimization function for the Thelen model
 def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
-    onset_values = np.arange(20, 26, 1)
-    offset_values = np.arange(26, 76, 1)
+    onset_values = np.arange(0, 75, 1)
+    offset_values = np.arange(1, 100, 1)
 
     best_onset = None
     best_offset = None
@@ -109,6 +109,8 @@ def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
 
     for onset in onset_values:
         for offset in offset_values:
+            if offset <= onset:
+                continue
             sim_results = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
             if sim_results is None:
                 continue
@@ -164,8 +166,8 @@ def run_simulation():
 
 # Define the UI layout
 with ui.sidebar():
-            ui.input_slider("onset", "Onset (% of cycle)", min=20, max=25, value=22),
-            ui.input_slider("offset", "Offset (% of cycle)", min=26, max=100, value=66),
+            ui.input_slider("onset", "Onset (% of cycle)", min=0, max=74, value=22),
+            ui.input_slider("offset", "Offset (% of cycle)", min=1, max=99, value=66),
             ui.input_slider("excursion", "Excursion amplitude (mm)", min=1, max=50, value=20),
             ui.input_slider("cycle_freq", "Cycle frequency (Hz)", min=0.5, max=4.5, value=2.0),
             ui.input_numeric("length_optimal", "Length optimal (m)", value=0.084),
