@@ -2,6 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from shiny import reactive
 from shiny.express import input, output, render, ui
 
 # Thelen muscle model with full calculations
@@ -98,36 +99,50 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         print(f"Error in thelen_muscle: {e}")
         return None
 
-# Optimization function for the Thelen model
+# Optimization function for the Thelen model (two-phase coarse→fine search)
 def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
-    onset_values = np.arange(0, 75, 1)
-    offset_values = np.arange(1, 100, 1)
-
     best_onset = None
     best_offset = None
     max_power = -np.inf
 
-    for onset in onset_values:
-        for offset in offset_values:
-            if offset <= onset:
-                continue
+    # Phase 1: coarse search (step=5) over full range
+    for onset in range(0, 75, 5):
+        for offset in range(onset + 5, 100, 5):
             sim_results = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
             if sim_results is None:
                 continue
-
             current_power = sim_results['power_actual']
-
             if current_power > max_power:
                 best_onset = onset
                 best_offset = offset
                 max_power = current_power
 
-    if best_onset is not None and best_offset is not None:
-        optimized_results = thelen_muscle([best_onset, best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-        return optimized_results, best_onset, best_offset, max_power
-    return None, None, None, None
+    if best_onset is None:
+        return None, None, None, None
+
+    # Phase 2: fine search (step=1) within ±5 of coarse best
+    max_power = -np.inf
+    fine_best_onset = best_onset
+    fine_best_offset = best_offset
+    for onset in range(max(0, best_onset - 5), min(75, best_onset + 6)):
+        for offset in range(max(onset + 1, best_offset - 5), min(100, best_offset + 6)):
+            sim_results = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+            if sim_results is None:
+                continue
+            current_power = sim_results['power_actual']
+            if current_power > max_power:
+                fine_best_onset = onset
+                fine_best_offset = offset
+                max_power = current_power
+
+    optimized_results = thelen_muscle([fine_best_onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+    if optimized_results is not None:
+        optimized_results['best_onset'] = fine_best_onset
+        optimized_results['best_offset'] = fine_best_offset
+    return optimized_results, fine_best_onset, fine_best_offset, max_power
 
 # Define the run_simulation function with theoretical results
+@reactive.calc
 def run_simulation():
     # Simulated muscle parameters
     muscle_params = {
@@ -485,25 +500,15 @@ def results():
    # New function to render the optimized onset/offset table
 @render.table
 def optimized_onset_offset():
-    # Show optimized onset/offset only if the optimize checkbox is selected
     if input.optimize():
-        # Call run_simulation and assume it returns the optimized onset and offset as well
-        optimized_results = thelen_muscle_opt(input.cycle_freq(), input.excursion(), input.length_optimal(),
-                                              input.max_isometric_force(), input.max_velocity(),
-                                              input.force_velocity_curvature(), input.activation_time(), input.deactivation_time())
-        if optimized_results is None:
+        results = run_simulation()
+        opt_results = results[2]
+        if opt_results is None:
             return pd.DataFrame()
-
-        # Extract optimized onset and offset values from the optimization function
-        _, optimized_onset, optimized_offset, _ = optimized_results
-
-        # Create a DataFrame for the optimized values
         optimization_df = pd.DataFrame({
             "Parameter": ["Optimized Onset", "Optimized Offset"],
-            "Value": [optimized_onset, optimized_offset]
+            "Value": [opt_results['best_onset'], opt_results['best_offset']]
         })
-
         return optimization_df
     else:
-        # If optimization is not selected, return an empty DataFrame
         return pd.DataFrame()
