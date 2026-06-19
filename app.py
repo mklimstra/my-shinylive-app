@@ -142,17 +142,19 @@ def run_simulation():
         "tau_d": input.deactivation_time(),
     }
     
-    # Calculate simulated results
+    # Always compute slider-based simulation
+    sim_results = thelen_muscle(**muscle_params)
+
+    # Compute optimized results only when checkbox is checked
+    opt_results = None
     if input.optimize():
-        sim_results, _, _, _ = thelen_muscle_opt(
+        opt_results, _, _, _ = thelen_muscle_opt(
             input.cycle_freq(), input.excursion(), input.length_optimal(),
             input.max_isometric_force(), input.max_velocity(),
             input.force_velocity_curvature(), input.activation_time(),
             input.deactivation_time()
         )
-    else:
-        sim_results = thelen_muscle(**muscle_params)
-    
+
     # Theoretical muscle parameters (instantaneous activation/deactivation and no onoff)
     theoretical_params = muscle_params.copy()
     theoretical_params['onoff'] = [25, 75]  # No onset or offset
@@ -162,7 +164,7 @@ def run_simulation():
     # Calculate theoretical results with zero onset/offset and instantaneous activation/deactivation
     theoretical_results = thelen_muscle(**theoretical_params)
     
-    return sim_results, theoretical_results
+    return sim_results, theoretical_results, opt_results
 
 # Define the UI layout
 with ui.sidebar():
@@ -185,8 +187,9 @@ with ui.card():
             @render.plot
             def combined_graphs():
                 results = run_simulation()
-                sim_results = results[0]  # First item in the tuple is sim_results
-                theoretical_results = results[1]  # Second item is theoretical_results
+                sim_results = results[0]
+                theoretical_results = results[1]
+                opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
                     return
@@ -203,10 +206,12 @@ with ui.card():
     
                 axs[0, 0].plot(cycle_pct_sim, force_total_sim, label='Simulated Force')
                 axs[0, 0].plot(cycle_pct_theoretical, force_total_theoretical, label='Theoretical Force', linestyle='--')
+                if opt_results is not None:
+                    axs[0, 0].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized Force', linestyle=':', color='purple')
                 axs[0, 0].set_title("Force vs. % of Cycle")
                 axs[0, 0].set_xlabel("% of Cycle")
                 axs[0, 0].set_ylabel("Force (N)")
-                
+                axs[0, 0].legend()
 
                 # Top-right: Velocity vs. % of Cycle
                 velocity_sim = sim_results['sim_data']['velocity']
@@ -214,10 +219,12 @@ with ui.card():
     
                 axs[0, 1].plot(cycle_pct_sim, velocity_sim, color="green", label='Simulated Velocity')
                 axs[0, 1].plot(cycle_pct_theoretical, velocity_theoretical, color="lightgreen", linestyle='--', label='Theoretical Velocity')
+                if opt_results is not None:
+                    axs[0, 1].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized Velocity', linestyle=':', color='purple')
                 axs[0, 1].set_title("Velocity vs. % of Cycle")
                 axs[0, 1].set_xlabel("% of Cycle")
                 axs[0, 1].set_ylabel("Velocity (m/s)")
-                
+                axs[0, 1].legend()
 
                 # Bottom-left: Position vs. % of Cycle
                 position_sim = sim_results['sim_data']['position']
@@ -225,10 +232,12 @@ with ui.card():
     
                 axs[1, 0].plot(cycle_pct_sim, position_sim, color="orange", label='Simulated Position')
                 axs[1, 0].plot(cycle_pct_theoretical, position_theoretical, color="darkorange", linestyle='--', label='Theoretical Position')
+                if opt_results is not None:
+                    axs[1, 0].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position'], label='Optimized Position', linestyle=':', color='purple')
                 axs[1, 0].set_title("Position vs. % of Cycle")
                 axs[1, 0].set_xlabel("% of Cycle")
                 axs[1, 0].set_ylabel("Position (m)")
-                
+                axs[1, 0].legend()
 
                 # Bottom-right: Power vs. % of Cycle
                 power_sim = sim_results['sim_data']['power']
@@ -236,10 +245,12 @@ with ui.card():
     
                 axs[1, 1].plot(cycle_pct_sim, power_sim, color="red", label='Simulated Power')
                 axs[1, 1].plot(cycle_pct_theoretical, power_theoretical, color="lightcoral", linestyle='--', label='Theoretical Power')
+                if opt_results is not None:
+                    axs[1, 1].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized Power', linestyle=':', color='purple')
                 axs[1, 1].set_title("Power vs. % of Cycle")
                 axs[1, 1].set_xlabel("% of Cycle")
                 axs[1, 1].set_ylabel("Power (W)")
-                
+                axs[1, 1].legend()
 
                 # Adjust layout
                 fig.tight_layout()
@@ -249,8 +260,9 @@ with ui.card():
             @render.plot
             def work_loop1():
                 results = run_simulation()
-                sim_results = results[0]  # First item in the tuple is sim_results
-                theoretical_results = results[1]  # Second item is theoretical_results
+                sim_results = results[0]
+                theoretical_results = results[1]
+                opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
                     return
@@ -267,6 +279,8 @@ with ui.card():
                 # Plot force vs. position (excursion)
                 ax.plot(position_sim, force_total_sim, label="Simulated Work Loop")
                 ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--')
+                if opt_results is not None:
+                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
 
                 ax.set_title("Work Loop (Force vs. Excursion)")
                 ax.set_xlabel("Excursion (m)")
@@ -282,8 +296,9 @@ with ui.card():
             @render.plot
             def force_cycle_with_theoretical():
                 results = run_simulation()
-                sim_results = results[0]  # First item in the tuple is sim_results
-                theoretical_results = results[1]  # Second item is theoretical_results
+                sim_results = results[0]
+                theoretical_results = results[1]
+                opt_results = results[2]
 
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
@@ -297,6 +312,9 @@ with ui.card():
 
                 # Plot Theoretical Force vs. % of Cycle
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical Force', color='orange')
+
+                if opt_results is not None:
+                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized Force', linestyle=':', color='purple')
 
                 # Add labels and legend
                 ax.set_title("Force vs. % of Cycle (Simulated vs. Theoretical)")
@@ -312,6 +330,7 @@ with ui.card():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
+                opt_results = results[2]
 
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
@@ -325,6 +344,9 @@ with ui.card():
 
                 # Plot Theoretical Velocity vs. % of Cycle
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['velocity'], label='Theoretical Velocity', color='lightgreen')
+
+                if opt_results is not None:
+                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized Velocity', linestyle=':', color='purple')
 
                 # Add labels and legend
                 ax.set_title("Velocity vs. % of Cycle (Simulated vs. Theoretical)")
@@ -368,6 +390,7 @@ with ui.card():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
+                opt_results = results[2]
 
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
@@ -381,6 +404,9 @@ with ui.card():
 
                 # Plot Theoretical Power vs. % of Cycle
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['power'], label='Theoretical Power', color='lightcoral')
+
+                if opt_results is not None:
+                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized Power', linestyle=':', color='purple')
 
                 # Add labels and legend
                 ax.set_title("Power vs. % of Cycle (Simulated vs. Theoretical)")
@@ -396,6 +422,7 @@ with ui.card():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
+                opt_results = results[2]
 
                 if sim_results is None or theoretical_results is None:
                     print("Simulation failed: one or both result sets are None")
@@ -414,6 +441,8 @@ with ui.card():
                 # Plot force vs. position (excursion) for both simulated and theoretical
                 ax.plot(position_sim, force_total_sim, label="Simulated Work Loop", color='blue')
                 ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--', color='orange')
+                if opt_results is not None:
+                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
 
                 # Add labels and legend
                 ax.set_title("Work Loop (Force vs. Excursion)")
@@ -428,8 +457,8 @@ with ui.card():
 def results():
     # Unpack the tuple into sim_results and theoretical_results
     results = run_simulation()
-    sim_results = results[0]  # First item in the tuple is sim_results
-    theoretical_results = results[1]  # Second item is theoretical_results
+    sim_results = results[0]
+    theoretical_results = results[1]
 
     if sim_results is None or theoretical_results is None:
         print("Simulation failed: one or both result sets are None")
