@@ -181,7 +181,28 @@ def run_simulation():
     
     return sim_results, theoretical_results, opt_results
 
+# Info modal handler
+@reactive.effect
+@reactive.event(input.info_btn)
+def show_info_modal():
+    m = ui.modal(
+        ui.p("Developed by Jim Martin, Jenna Link, Marc Klimstra"),
+        title="About Virtual Muscle Lab",
+        easy_close=True,
+        footer=ui.modal_button("Close")
+    )
+    ui.modal_show(m)
+
 # Define the UI layout
+ui.div(
+    ui.span("Virtual Muscle Lab", style="font-size:1.5em; font-weight:bold; color:white;"),
+    ui.input_action_button(
+        "info_btn", "\u24d8",
+        style="background:none; border:1px solid rgba(255,255,255,0.6); border-radius:50%; color:white; font-size:1em; width:30px; height:30px; line-height:1; cursor:pointer; margin-left:12px; padding:0;"
+    ),
+    style="background-color:#2c5f8a; color:white; padding:10px 20px; display:flex; align-items:center; width:100%; box-sizing:border-box;"
+)
+
 with ui.sidebar():
             ui.input_slider("onset", "Onset (% of cycle)", min=0, max=74, value=22),
             ui.input_slider("offset", "Offset (% of cycle)", min=1, max=99, value=66),
@@ -197,8 +218,9 @@ with ui.sidebar():
 
 
 with ui.card():
-    with ui.navset_bar(title="Virtual Muscle Lab"):
-        with ui.nav_panel(title="Graphs"):
+    with ui.navset_bar():
+        with ui.nav_panel(title="Force,Velocity,Power"):
+            ui.input_switch("show_workloop", "Show Workloop", value=False)
             @render.plot
             def combined_graphs():
                 results = run_simulation()
@@ -271,38 +293,39 @@ with ui.card():
                 fig.tight_layout()
                 return fig
 
+            with ui.panel_conditional("input.show_workloop"):
 
-            @render.plot
-            def work_loop1():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-                opt_results = results[2]
-                if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
-                    return
+                @render.plot
+                def work_loop1():
+                    results = run_simulation()
+                    sim_results = results[0]
+                    theoretical_results = results[1]
+                    opt_results = results[2]
+                    if sim_results is None or theoretical_results is None:
+                        print("Simulation failed: one or both result sets are None")
+                        return
 
-                fig, ax = plt.subplots()
+                    fig, ax = plt.subplots()
 
-                # Extract force and position data for the work-loop graph
-                force_total_sim = sim_results['sim_data']['force_total']
-                position_sim = sim_results['sim_data']['position']
-    
-                force_total_theoretical = theoretical_results['sim_data']['force_total']
-                position_theoretical = theoretical_results['sim_data']['position']
+                    # Extract force and position data for the work-loop graph
+                    force_total_sim = sim_results['sim_data']['force_total']
+                    position_sim = sim_results['sim_data']['position']
 
-                # Plot force vs. position (excursion)
-                ax.plot(position_sim, force_total_sim, label="Simulated Work Loop")
-                ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--')
-                if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
+                    force_total_theoretical = theoretical_results['sim_data']['force_total']
+                    position_theoretical = theoretical_results['sim_data']['position']
 
-                ax.set_title("Work Loop (Force vs. Excursion)")
-                ax.set_xlabel("Excursion (m)")
-                ax.set_ylabel("Force (N)")
-                ax.legend()
+                    # Plot force vs. position (excursion)
+                    ax.plot(position_sim, force_total_sim, label="Simulated Work Loop")
+                    ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--')
+                    if opt_results is not None:
+                        ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
 
-                return fig
+                    ax.set_title("Work Loop (Force vs. Excursion)")
+                    ax.set_xlabel("Excursion (m)")
+                    ax.set_ylabel("Force (N)")
+                    ax.legend()
+
+                    return fig
 
         with ui.nav_panel(title="Graphs2"):
             
