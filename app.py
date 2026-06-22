@@ -214,6 +214,15 @@ ui.tags.style("""
         .nav-item a { padding: 6px 10px !important; font-size: 0.9em; }
     }
 """)
+ui.tags.script("""
+    function _reportWidth() {
+        if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+            Shiny.setInputValue('window_width', window.innerWidth, {priority: 'dedup'});
+        }
+    }
+    window.addEventListener('resize', _reportWidth);
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(_reportWidth, 300); });
+""")
 ui.div(
     ui.span("Virtual Muscle Lab", style="font-size:1.5em; font-weight:bold; color:white;"),
     ui.input_action_button(
@@ -248,68 +257,77 @@ with ui.card():
                 theoretical_results = results[1]
                 opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
                     return
 
-                # Create a 2x2 grid of subplots
-                fig, axs = plt.subplots(2, 2, figsize=(9, 7))
+                try:
+                    is_mobile = input.window_width() < 768
+                except:
+                    is_mobile = False
 
-                # Top-left: Force vs. % of Cycle
-                force_total_sim = sim_results['sim_data']['force_total']
                 cycle_pct_sim = sim_results['sim_data']['cycle_pct']
-    
-                force_total_theoretical = theoretical_results['sim_data']['force_total']
                 cycle_pct_theoretical = theoretical_results['sim_data']['cycle_pct']
-    
-                axs[0, 0].plot(cycle_pct_sim, force_total_sim, label='Simulated Force')
-                axs[0, 0].plot(cycle_pct_theoretical, force_total_theoretical, label='Theoretical Force', linestyle='--')
-                if opt_results is not None:
-                    axs[0, 0].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized Force', linestyle=':', color='purple')
-                axs[0, 0].set_title("Force vs. % of Cycle")
-                axs[0, 0].set_xlabel("% of Cycle")
-                axs[0, 0].set_ylabel("Force (N)")
-                axs[0, 0].legend()
 
-                # Top-right: Velocity vs. % of Cycle
-                velocity_sim = sim_results['sim_data']['velocity']
-                velocity_theoretical = theoretical_results['sim_data']['velocity']
-    
-                axs[0, 1].plot(cycle_pct_sim, velocity_sim, color="green", label='Simulated Velocity')
-                axs[0, 1].plot(cycle_pct_theoretical, velocity_theoretical, color="lightgreen", linestyle='--', label='Theoretical Velocity')
-                if opt_results is not None:
-                    axs[0, 1].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized Velocity', linestyle=':', color='purple')
-                axs[0, 1].set_title("Velocity vs. % of Cycle")
-                axs[0, 1].set_xlabel("% of Cycle")
-                axs[0, 1].set_ylabel("Velocity (m/s)")
-                axs[0, 1].legend()
+                if is_mobile:
+                    fig, axes = plt.subplots(4, 1, figsize=(5, 13))
+                    ax_f, ax_v, ax_p, ax_pw = axes
+                    legend_kw = dict(fontsize=7, loc='upper right')
+                    tick_kw = dict(labelsize=7)
+                    title_kw = dict(fontsize=8)
+                else:
+                    fig, axs = plt.subplots(2, 2, figsize=(9, 7))
+                    ax_f, ax_v, ax_p, ax_pw = axs[0,0], axs[0,1], axs[1,0], axs[1,1]
+                    legend_kw = dict()
+                    tick_kw = dict()
+                    title_kw = dict()
 
-                # Bottom-left: Position vs. % of Cycle
-                position_sim = sim_results['sim_data']['position']
-                position_theoretical = theoretical_results['sim_data']['position']
-    
-                axs[1, 0].plot(cycle_pct_sim, position_sim, color="orange", label='Simulated Position')
-                axs[1, 0].plot(cycle_pct_theoretical, position_theoretical, color="darkorange", linestyle='--', label='Theoretical Position')
+                # Force
+                ax_f.plot(cycle_pct_sim, sim_results['sim_data']['force_total'], label='Simulated')
+                ax_f.plot(cycle_pct_theoretical, theoretical_results['sim_data']['force_total'], label='Theoretical', linestyle='--')
                 if opt_results is not None:
-                    axs[1, 0].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position'], label='Optimized Position', linestyle=':', color='purple')
-                axs[1, 0].set_title("Position vs. % of Cycle")
-                axs[1, 0].set_xlabel("% of Cycle")
-                axs[1, 0].set_ylabel("Position (m)")
-                axs[1, 0].legend()
+                    ax_f.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
+                ax_f.set_title("Force vs. % of Cycle", **title_kw)
+                ax_f.set_xlabel("% of Cycle", **tick_kw)
+                if not is_mobile:
+                    ax_f.set_ylabel("Force (N)")
+                ax_f.tick_params(**tick_kw)
+                ax_f.legend(**legend_kw)
 
-                # Bottom-right: Power vs. % of Cycle
-                power_sim = sim_results['sim_data']['power']
-                power_theoretical = theoretical_results['sim_data']['power']
-    
-                axs[1, 1].plot(cycle_pct_sim, power_sim, color="red", label='Simulated Power')
-                axs[1, 1].plot(cycle_pct_theoretical, power_theoretical, color="lightcoral", linestyle='--', label='Theoretical Power')
+                # Velocity
+                ax_v.plot(cycle_pct_sim, sim_results['sim_data']['velocity'], color="green", label='Simulated')
+                ax_v.plot(cycle_pct_theoretical, theoretical_results['sim_data']['velocity'], color="lightgreen", linestyle='--', label='Theoretical')
                 if opt_results is not None:
-                    axs[1, 1].plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized Power', linestyle=':', color='purple')
-                axs[1, 1].set_title("Power vs. % of Cycle")
-                axs[1, 1].set_xlabel("% of Cycle")
-                axs[1, 1].set_ylabel("Power (W)")
-                axs[1, 1].legend()
+                    ax_v.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized', linestyle=':', color='purple')
+                ax_v.set_title("Velocity vs. % of Cycle", **title_kw)
+                ax_v.set_xlabel("% of Cycle", **tick_kw)
+                if not is_mobile:
+                    ax_v.set_ylabel("Velocity (m/s)")
+                ax_v.tick_params(**tick_kw)
+                ax_v.legend(**legend_kw)
 
-                # Adjust layout
+                # Position
+                ax_p.plot(cycle_pct_sim, sim_results['sim_data']['position'], color="orange", label='Simulated')
+                ax_p.plot(cycle_pct_theoretical, theoretical_results['sim_data']['position'], color="darkorange", linestyle='--', label='Theoretical')
+                if opt_results is not None:
+                    ax_p.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position'], label='Optimized', linestyle=':', color='purple')
+                ax_p.set_title("Position vs. % of Cycle", **title_kw)
+                ax_p.set_xlabel("% of Cycle", **tick_kw)
+                if not is_mobile:
+                    ax_p.set_ylabel("Position (m)")
+                ax_p.tick_params(**tick_kw)
+                ax_p.legend(**legend_kw)
+
+                # Power
+                ax_pw.plot(cycle_pct_sim, sim_results['sim_data']['power'], color="red", label='Simulated')
+                ax_pw.plot(cycle_pct_theoretical, theoretical_results['sim_data']['power'], color="lightcoral", linestyle='--', label='Theoretical')
+                if opt_results is not None:
+                    ax_pw.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized', linestyle=':', color='purple')
+                ax_pw.set_title("Power vs. % of Cycle", **title_kw)
+                ax_pw.set_xlabel("% of Cycle", **tick_kw)
+                if not is_mobile:
+                    ax_pw.set_ylabel("Power (W)")
+                ax_pw.tick_params(**tick_kw)
+                ax_pw.legend(**legend_kw)
+
                 fig.tight_layout()
                 return fig
 
