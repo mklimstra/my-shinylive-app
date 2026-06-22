@@ -218,7 +218,7 @@ with ui.sidebar():
 
 
 with ui.card():
-    with ui.navset_bar():
+    with ui.navset_bar(title=""):
         with ui.nav_panel(title="Force,Velocity,Power"):
             ui.input_switch("show_workloop", "Show Workloop", value=False)
             @render.plot
