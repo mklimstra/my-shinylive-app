@@ -194,13 +194,19 @@ def show_info_modal():
     ui.modal_show(m)
 
 # Define the UI layout
+ui.tags.style("""
+    body, .bslib-page-fill { padding-top: 52px !important; }
+    .app-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+                  background-color: #2c5f8a; color: white;
+                  padding: 10px 20px; display: flex; align-items: center; }
+""")
 ui.div(
     ui.span("Virtual Muscle Lab", style="font-size:1.5em; font-weight:bold; color:white;"),
     ui.input_action_button(
         "info_btn", "\u24d8",
         style="background:none; border:1px solid rgba(255,255,255,0.6); border-radius:50%; color:white; font-size:1em; width:30px; height:30px; line-height:1; cursor:pointer; margin-left:12px; padding:0;"
     ),
-    style="background-color:#2c5f8a; color:white; padding:10px 20px; display:flex; align-items:center; width:100%; box-sizing:border-box;"
+    class_="app-banner"
 )
 
 with ui.sidebar():
@@ -326,6 +332,28 @@ with ui.card():
                     ax.legend()
 
                     return fig
+
+                @render.ui
+                def workloop_metrics():
+                    r = run_simulation()
+                    sim = r[0]
+                    theo = r[1]
+                    opt = r[2]
+                    if sim is None or theo is None:
+                        return ui.p("No results available")
+                    opt_col = [
+                        round(opt['work_actual'], 4),
+                        round(opt['work_positive'], 4),
+                        round(opt['work_negative'], 4),
+                        round(opt['power_actual'], 4),
+                    ] if opt is not None else ["\u2014", "\u2014", "\u2014", "\u2014"]
+                    df = pd.DataFrame({
+                        "Metric": ["Total Work (J)", "Positive Work (J)", "Negative Work (J)", "Mean Power (W)"],
+                        "Simulated": [round(sim['work_actual'], 4), round(sim['work_positive'], 4), round(sim['work_negative'], 4), round(sim['power_actual'], 4)],
+                        "Theoretical": [round(theo['work_actual'], 4), round(theo['work_positive'], 4), round(theo['work_negative'], 4), round(theo['power_actual'], 4)],
+                        "Optimized": opt_col,
+                    })
+                    return ui.HTML(df.to_html(index=False, classes="table table-bordered table-sm text-center", border=0))
 
         with ui.nav_panel(title="Graphs2"):
             
@@ -490,36 +518,6 @@ with ui.card():
 
                 return fig
 
-   
-@render.table
-def results():
-    # Unpack the tuple into sim_results and theoretical_results
-    results = run_simulation()
-    sim_results = results[0]
-    theoretical_results = results[1]
-
-    if sim_results is None or theoretical_results is None:
-        print("Simulation failed: one or both result sets are None")
-        return pd.DataFrame()
-
-    # Create a DataFrame with both simulated and theoretical results
-    results_df = pd.DataFrame({
-        "Metric": ["Total Work", "Positive Work", "Negative Work", "Power"],
-        "Simulated Results": [
-            sim_results['work_actual'],
-            sim_results['work_positive'],
-            sim_results['work_negative'],
-            sim_results['power_actual']
-        ],
-        "Theoretical Results": [
-            theoretical_results['work_actual'],
-            theoretical_results['work_positive'],
-            theoretical_results['work_negative'],
-            theoretical_results['power_actual']
-        ]
-    })
-
-    return results_df
    # New function to render the optimized onset/offset table
 @render.table
 def optimized_onset_offset():
