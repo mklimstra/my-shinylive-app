@@ -282,12 +282,14 @@ with ui.card():
                     ax_f, ax_v, ax_p, ax_pw = axes
                     legend_kw = dict(fontsize=7, loc='upper right')
                     tick_kw = dict(labelsize=7)
+                    xlabel_kw = dict(fontsize=7)
                     title_kw = dict(fontsize=8)
                 else:
                     fig, axs = plt.subplots(2, 2, figsize=(9, 7))
                     ax_f, ax_v, ax_p, ax_pw = axs[0,0], axs[0,1], axs[1,0], axs[1,1]
                     legend_kw = dict()
                     tick_kw = dict()
+                    xlabel_kw = dict()
                     title_kw = dict()
 
                 # Force
@@ -296,7 +298,7 @@ with ui.card():
                 if opt_results is not None:
                     ax_f.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
                 ax_f.set_title("Force vs. % of Cycle", **title_kw)
-                ax_f.set_xlabel("% of Cycle", **tick_kw)
+                ax_f.set_xlabel("% of Cycle", **xlabel_kw)
                 if not is_mobile:
                     ax_f.set_ylabel("Force (N)")
                 ax_f.tick_params(**tick_kw)
@@ -308,7 +310,7 @@ with ui.card():
                 if opt_results is not None:
                     ax_v.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized', linestyle=':', color='purple')
                 ax_v.set_title("Velocity vs. % of Cycle", **title_kw)
-                ax_v.set_xlabel("% of Cycle", **tick_kw)
+                ax_v.set_xlabel("% of Cycle", **xlabel_kw)
                 if not is_mobile:
                     ax_v.set_ylabel("Velocity (m/s)")
                 ax_v.tick_params(**tick_kw)
@@ -320,7 +322,7 @@ with ui.card():
                 if opt_results is not None:
                     ax_p.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position'], label='Optimized', linestyle=':', color='purple')
                 ax_p.set_title("Position vs. % of Cycle", **title_kw)
-                ax_p.set_xlabel("% of Cycle", **tick_kw)
+                ax_p.set_xlabel("% of Cycle", **xlabel_kw)
                 if not is_mobile:
                     ax_p.set_ylabel("Position (m)")
                 ax_p.tick_params(**tick_kw)
@@ -332,7 +334,7 @@ with ui.card():
                 if opt_results is not None:
                     ax_pw.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized', linestyle=':', color='purple')
                 ax_pw.set_title("Power vs. % of Cycle", **title_kw)
-                ax_pw.set_xlabel("% of Cycle", **tick_kw)
+                ax_pw.set_xlabel("% of Cycle", **xlabel_kw)
                 if not is_mobile:
                     ax_pw.set_ylabel("Power (W)")
                 ax_pw.tick_params(**tick_kw)
