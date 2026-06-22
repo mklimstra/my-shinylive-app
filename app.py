@@ -215,14 +215,27 @@ ui.tags.style("""
     }
 """)
 ui.tags.script("""
-    function _reportWidth() {
-        if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
-            Shiny.setInputValue('window_width', window.innerWidth, {priority: 'dedup'});
+    (function() {
+        function _sendWidth() {
+            if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+                Shiny.setInputValue('window_width', window.innerWidth, {priority: 'event'});
+            } else {
+                setTimeout(_sendWidth, 150);
+            }
         }
-    }
-    window.addEventListener('resize', _reportWidth);
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(_reportWidth, 300); });
+        _sendWidth();
+        window.addEventListener('resize', function() {
+            if (typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+                Shiny.setInputValue('window_width', window.innerWidth, {priority: 'event'});
+            }
+        });
+    })();
 """)
+# Hidden pre-declared input so window_width always exists with a desktop default
+ui.tags.div(
+    ui.input_numeric("window_width", "", value=1200, min=100, max=5000),
+    style="display:none; position:absolute;"
+)
 ui.div(
     ui.span("Virtual Muscle Lab", style="font-size:1.5em; font-weight:bold; color:white;"),
     ui.input_action_button(
@@ -259,10 +272,7 @@ with ui.card():
                 if sim_results is None or theoretical_results is None:
                     return
 
-                try:
-                    is_mobile = input.window_width() < 768
-                except:
-                    is_mobile = False
+                is_mobile = input.window_width() < 768
 
                 cycle_pct_sim = sim_results['sim_data']['cycle_pct']
                 cycle_pct_theoretical = theoretical_results['sim_data']['cycle_pct']
