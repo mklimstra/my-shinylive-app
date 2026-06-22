@@ -196,9 +196,23 @@ def show_info_modal():
 # Define the UI layout
 ui.tags.style("""
     body, .bslib-page-fill { padding-top: 52px !important; }
-    .app-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-                  background-color: #2c5f8a; color: white;
-                  padding: 10px 20px; display: flex; align-items: center; }
+    .app-banner {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background-color: #2c5f8a; color: white;
+        padding: 10px 20px; display: flex; align-items: center;
+    }
+    /* Plots scale to container width */
+    .shiny-plot-output img { max-width: 100%; height: auto !important; }
+    /* Scrollable tables */
+    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    /* Mobile adjustments */
+    @media (max-width: 767px) {
+        .app-banner { padding: 8px 12px; }
+        .app-banner span { font-size: 1.1em !important; }
+        .shiny-input-container { width: 100% !important; }
+        .irs--shiny .irs-line, .irs--shiny .irs-bar { width: 100% !important; }
+        .nav-item a { padding: 6px 10px !important; font-size: 0.9em; }
+    }
 """)
 ui.div(
     ui.span("Virtual Muscle Lab", style="font-size:1.5em; font-weight:bold; color:white;"),
@@ -209,7 +223,7 @@ ui.div(
     class_="app-banner"
 )
 
-with ui.sidebar():
+with ui.sidebar(open="desktop"):
             ui.input_slider("onset", "Onset (% of cycle)", min=0, max=74, value=22),
             ui.input_slider("offset", "Offset (% of cycle)", min=1, max=99, value=66),
             ui.input_slider("excursion", "Excursion amplitude (mm)", min=1, max=50, value=20),
@@ -238,7 +252,7 @@ with ui.card():
                     return
 
                 # Create a 2x2 grid of subplots
-                fig, axs = plt.subplots(2, 2, figsize=(12, 10))  # 2 rows, 2 columns
+                fig, axs = plt.subplots(2, 2, figsize=(9, 7))
 
                 # Top-left: Force vs. % of Cycle
                 force_total_sim = sim_results['sim_data']['force_total']
@@ -368,7 +382,7 @@ with ui.card():
                             html += f"<td {td}>{cell}</td>"
                         html += "</tr>"
                     html += "</tbody></table>"
-                    return ui.HTML(html)
+                    return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
             
@@ -556,4 +570,4 @@ def optimized_onset_offset():
     for row in rows:
         html += f"<tr><td {td_left}>{row[0]}</td><td {td}>{row[1]}</td></tr>"
     html += "</tbody></table>"
-    return ui.HTML(html)
+    return ui.div(ui.HTML(html), class_="tbl-scroll")
