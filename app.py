@@ -614,7 +614,6 @@ def optimized_onset_offset():
     td_left = "style='padding:8px 14px; border:1px solid #ccc; text-align:left; white-space:nowrap;'"
     td = "style='padding:8px 14px; border:1px solid #ccc; text-align:center;'"
     rows = [
-        ["Algorithm", "Coordinate descent"],
         ["Optimized Onset (%)", opt_results['best_onset']],
         ["Optimized Offset (%)", opt_results['best_offset']],
     ]
