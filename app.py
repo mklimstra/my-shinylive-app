@@ -100,42 +100,47 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         return None
 
 # Optimization function: coordinate descent (alternates onset/offset until convergence)
+# Uses work_actual (net work over full cycle) as objective to avoid the variable-window
+# bias in power_actual, which unfairly favours later onset values.
 def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
+
+    def score(r):
+        return r['work_actual'] if r else -np.inf
 
     def best_offset_given_onset(onset, current_best=None):
         """Coarse+fine sweep of offset with onset fixed."""
         boff = None
-        mp = -np.inf
+        best = -np.inf
         for offset in range(onset + 5, 100, 5):
             r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if r and r['power_actual'] > mp:
-                boff, mp = offset, r['power_actual']
+            if score(r) > best:
+                boff, best = offset, score(r)
         if boff is None:
             return current_best
-        mp = -np.inf
+        best = -np.inf
         fine = boff
         for offset in range(max(onset + 1, boff - 5), min(100, boff + 6)):
             r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if r and r['power_actual'] > mp:
-                fine, mp = offset, r['power_actual']
+            if score(r) > best:
+                fine, best = offset, score(r)
         return fine
 
     def best_onset_given_offset(offset, current_best=None):
         """Coarse+fine sweep of onset with offset fixed."""
         bon = None
-        mp = -np.inf
+        best = -np.inf
         for onset in range(0, min(75, offset), 5):
             r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if r and r['power_actual'] > mp:
-                bon, mp = onset, r['power_actual']
+            if score(r) > best:
+                bon, best = onset, score(r)
         if bon is None:
             return current_best
-        mp = -np.inf
+        best = -np.inf
         fine = bon
         for onset in range(max(0, bon - 5), min(offset, bon + 6)):
             r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if r and r['power_actual'] > mp:
-                fine, mp = onset, r['power_actual']
+            if score(r) > best:
+                fine, best = onset, score(r)
         return fine
 
     # Initialise
