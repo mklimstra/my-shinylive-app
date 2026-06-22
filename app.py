@@ -99,41 +99,65 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         print(f"Error in thelen_muscle: {e}")
         return None
 
-# Optimization function for the Thelen model (two-phase coarse→fine search)
+# Optimization function: 2-pass sequential search
+# Pass 1 – sweep offset with onset fixed at initial guess → best_offset
+# Pass 2 – sweep onset with offset fixed at best_offset → best_onset
 def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
-    best_onset = None
+    INITIAL_ONSET = 25  # fixed onset used during pass 1
+
+    # ── Pass 1: optimise offset ──────────────────────────────────────────
     best_offset = None
     max_power = -np.inf
 
-    # Phase 1: coarse search (step=5) over full range
-    for onset in range(0, 75, 5):
-        for offset in range(onset + 5, 100, 5):
-            sim_results = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if sim_results is None:
-                continue
-            current_power = sim_results['power_actual']
-            if current_power > max_power:
-                best_onset = onset
-                best_offset = offset
-                max_power = current_power
+    # Coarse sweep (step=5)
+    for offset in range(INITIAL_ONSET + 5, 100, 5):
+        r = thelen_muscle([INITIAL_ONSET, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+        if r is None:
+            continue
+        if r['power_actual'] > max_power:
+            best_offset = offset
+            max_power = r['power_actual']
+
+    if best_offset is None:
+        return None, None, None, None
+
+    # Fine sweep (step=1) within ±5 of coarse best
+    max_power = -np.inf
+    fine_best_offset = best_offset
+    for offset in range(max(INITIAL_ONSET + 1, best_offset - 5), min(100, best_offset + 6)):
+        r = thelen_muscle([INITIAL_ONSET, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+        if r is None:
+            continue
+        if r['power_actual'] > max_power:
+            fine_best_offset = offset
+            max_power = r['power_actual']
+
+    # ── Pass 2: optimise onset using best_offset from pass 1 ─────────────
+    best_onset = None
+    max_power = -np.inf
+
+    # Coarse sweep (step=5)
+    for onset in range(0, min(75, fine_best_offset), 5):
+        r = thelen_muscle([onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+        if r is None:
+            continue
+        if r['power_actual'] > max_power:
+            best_onset = onset
+            max_power = r['power_actual']
 
     if best_onset is None:
         return None, None, None, None
 
-    # Phase 2: fine search (step=1) within ±5 of coarse best
+    # Fine sweep (step=1) within ±5 of coarse best
     max_power = -np.inf
     fine_best_onset = best_onset
-    fine_best_offset = best_offset
-    for onset in range(max(0, best_onset - 5), min(75, best_onset + 6)):
-        for offset in range(max(onset + 1, best_offset - 5), min(100, best_offset + 6)):
-            sim_results = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-            if sim_results is None:
-                continue
-            current_power = sim_results['power_actual']
-            if current_power > max_power:
-                fine_best_onset = onset
-                fine_best_offset = offset
-                max_power = current_power
+    for onset in range(max(0, best_onset - 5), min(fine_best_offset, best_onset + 6)):
+        r = thelen_muscle([onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+        if r is None:
+            continue
+        if r['power_actual'] > max_power:
+            fine_best_onset = onset
+            max_power = r['power_actual']
 
     optimized_results = thelen_muscle([fine_best_onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
     if optimized_results is not None:
