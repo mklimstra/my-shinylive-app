@@ -99,71 +99,66 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         print(f"Error in thelen_muscle: {e}")
         return None
 
-# Optimization function: 2-pass sequential search
-# Pass 1 – sweep offset with onset fixed at initial guess → best_offset
-# Pass 2 – sweep onset with offset fixed at best_offset → best_onset
+# Optimization function: coordinate descent (alternates onset/offset until convergence)
 def thelen_muscle_opt(freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
-    INITIAL_ONSET = 25  # fixed onset used during pass 1
 
-    # ── Pass 1: optimise offset ──────────────────────────────────────────
-    best_offset = None
-    max_power = -np.inf
+    def best_offset_given_onset(onset, current_best=None):
+        """Coarse+fine sweep of offset with onset fixed."""
+        boff = None
+        mp = -np.inf
+        for offset in range(onset + 5, 100, 5):
+            r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+            if r and r['power_actual'] > mp:
+                boff, mp = offset, r['power_actual']
+        if boff is None:
+            return current_best
+        mp = -np.inf
+        fine = boff
+        for offset in range(max(onset + 1, boff - 5), min(100, boff + 6)):
+            r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+            if r and r['power_actual'] > mp:
+                fine, mp = offset, r['power_actual']
+        return fine
 
-    # Coarse sweep (step=5)
-    for offset in range(INITIAL_ONSET + 5, 100, 5):
-        r = thelen_muscle([INITIAL_ONSET, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-        if r is None:
-            continue
-        if r['power_actual'] > max_power:
-            best_offset = offset
-            max_power = r['power_actual']
+    def best_onset_given_offset(offset, current_best=None):
+        """Coarse+fine sweep of onset with offset fixed."""
+        bon = None
+        mp = -np.inf
+        for onset in range(0, min(75, offset), 5):
+            r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+            if r and r['power_actual'] > mp:
+                bon, mp = onset, r['power_actual']
+        if bon is None:
+            return current_best
+        mp = -np.inf
+        fine = bon
+        for onset in range(max(0, bon - 5), min(offset, bon + 6)):
+            r = thelen_muscle([onset, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+            if r and r['power_actual'] > mp:
+                fine, mp = onset, r['power_actual']
+        return fine
 
-    if best_offset is None:
+    # Initialise
+    cur_onset = 25
+    cur_offset = best_offset_given_onset(cur_onset)
+    if cur_offset is None:
         return None, None, None, None
 
-    # Fine sweep (step=1) within ±5 of coarse best
-    max_power = -np.inf
-    fine_best_offset = best_offset
-    for offset in range(max(INITIAL_ONSET + 1, best_offset - 5), min(100, best_offset + 6)):
-        r = thelen_muscle([INITIAL_ONSET, offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-        if r is None:
-            continue
-        if r['power_actual'] > max_power:
-            fine_best_offset = offset
-            max_power = r['power_actual']
+    # Coordinate descent – up to 5 rounds or until no change
+    for _ in range(5):
+        new_onset  = best_onset_given_offset(cur_offset,  cur_onset)
+        new_offset = best_offset_given_onset(new_onset,   cur_offset)
+        if new_onset == cur_onset and new_offset == cur_offset:
+            break
+        cur_onset, cur_offset = new_onset, new_offset
 
-    # ── Pass 2: optimise onset using best_offset from pass 1 ─────────────
-    best_onset = None
-    max_power = -np.inf
-
-    # Coarse sweep (step=5)
-    for onset in range(0, min(75, fine_best_offset), 5):
-        r = thelen_muscle([onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-        if r is None:
-            continue
-        if r['power_actual'] > max_power:
-            best_onset = onset
-            max_power = r['power_actual']
-
-    if best_onset is None:
-        return None, None, None, None
-
-    # Fine sweep (step=1) within ±5 of coarse best
-    max_power = -np.inf
-    fine_best_onset = best_onset
-    for onset in range(max(0, best_onset - 5), min(fine_best_offset, best_onset + 6)):
-        r = thelen_muscle([onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-        if r is None:
-            continue
-        if r['power_actual'] > max_power:
-            fine_best_onset = onset
-            max_power = r['power_actual']
-
-    optimized_results = thelen_muscle([fine_best_onset, fine_best_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
-    if optimized_results is not None:
-        optimized_results['best_onset'] = fine_best_onset
-        optimized_results['best_offset'] = fine_best_offset
-    return optimized_results, fine_best_onset, fine_best_offset, max_power
+    opt = thelen_muscle([cur_onset, cur_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+    if opt is not None:
+        opt['best_onset']  = cur_onset
+        opt['best_offset'] = cur_offset
+    r_final = thelen_muscle([cur_onset, cur_offset], freq, excursion, L0, F0, Vx, af, tau_a, tau_d)
+    max_power = r_final['power_actual'] if r_final else -np.inf
+    return opt, cur_onset, cur_offset, max_power
 
 # Define the run_simulation function with theoretical results
 @reactive.calc
@@ -614,8 +609,9 @@ def optimized_onset_offset():
     td_left = "style='padding:8px 14px; border:1px solid #ccc; text-align:left; white-space:nowrap;'"
     td = "style='padding:8px 14px; border:1px solid #ccc; text-align:center;'"
     rows = [
-        ["Optimized Onset", opt_results['best_onset']],
-        ["Optimized Offset", opt_results['best_offset']],
+        ["Algorithm", "Coordinate descent"],
+        ["Optimized Onset (%)", opt_results['best_onset']],
+        ["Optimized Offset (%)", opt_results['best_offset']],
     ]
     html = "<table style='border-collapse:collapse; width:auto; margin-top:1rem;'><thead><tr>"
     for h in ["Parameter", "Value"]:
