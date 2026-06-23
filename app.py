@@ -453,7 +453,7 @@ with ui.card():
                 except Exception:
                     pass
 
-            with ui.div(style="height: 160px; overflow: hidden; margin: 0 0 6px 0;"):
+            with ui.div(style="margin: 0 0 6px 0;"):
                 @output_args(click=True)
                 @render.plot
                 def g2_force():
@@ -488,7 +488,7 @@ with ui.card():
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
-            with ui.div(style="height: 150px; overflow: hidden; margin: 0 0 6px 0;"):
+            with ui.div(style="margin: 0 0 6px 0;"):
                 @render.plot
                 def g2_position():
                     results = run_simulation()
@@ -517,7 +517,7 @@ with ui.card():
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
-            with ui.div(style="height: 400px; overflow: hidden; margin: 0;"):
+            with ui.div(style="margin: 0;"):
                 @render.plot
                 def g2_workloop():
                     results = run_simulation()
