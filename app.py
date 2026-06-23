@@ -441,7 +441,7 @@ with ui.card():
                 html += "</tbody></table>"
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
-        with ui.nav_panel(title="Graphs2"):
+        with ui.nav_panel(title="Interactive Workloop"):
             ui.p("Click on the Force graph to reveal data up to that point on all plots.",
                  style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
@@ -477,7 +477,7 @@ with ui.card():
                     sim_mask = np.ones(len(sim_data), dtype=bool)
                     theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                fig, ax = plt.subplots(figsize=(8, 3))
+                fig, ax = plt.subplots(figsize=(8, 2.1))
                 ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
                 ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
@@ -486,7 +486,6 @@ with ui.card():
                     ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                 ax.set_xlim(left=0, right=full_xmax)
                 ax.set_title("Force vs. % of Cycle  \u2190 click here to scrub")
-                ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
                 ax.legend()
                 fig.tight_layout()
@@ -512,12 +511,11 @@ with ui.card():
                     sim_mask = np.ones(len(sim_data), dtype=bool)
                     theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                fig, ax = plt.subplots(figsize=(8, 3))
+                fig, ax = plt.subplots(figsize=(8, 1.05))
                 ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
                 ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
                 ax.set_xlim(left=0, right=full_xmax)
                 ax.set_title("Position vs. % of Cycle")
-                ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Position (m)")
                 ax.legend()
                 fig.tight_layout()
@@ -555,12 +553,38 @@ with ui.card():
                     opt_data = opt_results['sim_data']
                     opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
                     ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
-                # Mark endpoint dot
-                if xmax is not None and sim_mask.any():
-                    last_sim = sim_mask.nonzero()[0][-1]
-                    last_theo = theo_mask.nonzero()[0][-1]
-                    ax.scatter([sim_data['position'].iloc[last_sim]], [sim_data['force_total'].iloc[last_sim]], color='blue', s=60, zorder=5)
-                    ax.scatter([theo_data['position'].iloc[last_theo]], [theo_data['force_total'].iloc[last_theo]], color='orange', s=60, zorder=5)
+                # Add directional arrows along the visible trajectory; more appear as scrub progress increases.
+                def _add_path_arrows(x_vals, y_vals, color):
+                    x = np.asarray(x_vals)
+                    y = np.asarray(y_vals)
+                    n = len(x)
+                    if n < 2:
+                        return
+
+                    stride = 12
+                    for i1 in range(stride, n, stride):
+                        i0 = i1 - 1
+                        ax.annotate(
+                            "",
+                            xy=(x[i1], y[i1]),
+                            xytext=(x[i0], y[i0]),
+                            arrowprops=dict(arrowstyle="-|>", color=color, lw=1.5, mutation_scale=10, shrinkA=0, shrinkB=0),
+                            zorder=6,
+                        )
+
+                    # Always show an arrow at the tip of the currently visible trajectory.
+                    ax.annotate(
+                        "",
+                        xy=(x[-1], y[-1]),
+                        xytext=(x[-2], y[-2]),
+                        arrowprops=dict(arrowstyle="-|>", color=color, lw=2, mutation_scale=12, shrinkA=0, shrinkB=0),
+                        zorder=7,
+                    )
+
+                _add_path_arrows(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], 'blue')
+                _add_path_arrows(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], 'orange')
+                if opt_results is not None:
+                    _add_path_arrows(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], 'purple')
                 ax.set_xlim(full_pos.min() - pos_margin, full_pos.max() + pos_margin)
                 ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
                 ax.set_title("Work Loop (Force vs. Excursion)")
