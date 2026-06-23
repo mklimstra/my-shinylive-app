@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from shiny import reactive
-from shiny.express import input, output, render, ui
+from shiny.express import input, output, render, ui, output_args
 
 # Thelen muscle model with full calculations
 def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
@@ -439,166 +439,84 @@ with ui.card():
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
-            
-# Define Server logic and plotting
-   
+            ui.p("Hover over the Force vs. Cycle graph to move the cursor across all plots.",
+                 style="color:#666; font-size:0.85em; margin-bottom:4px;")
+
+            @output_args(hover=ui.hover_opts(id="g2_hover", delay=50, delay_type="throttle", clip=True))
             @render.plot
-            def force_cycle_with_theoretical():
+            def g2_force():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
                 opt_results = results[2]
-
                 if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
                     return
-
-                # Create the plot
-                fig, ax = plt.subplots()
-
-                # Plot Simulated Force vs. % of Cycle
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['force_total'], label='Simulated Force', color='blue')
-
-                # Plot Theoretical Force vs. % of Cycle
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical Force', color='orange')
-
+                fig, ax = plt.subplots(figsize=(8, 3))
+                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['force_total'], label='Simulated', color='blue')
+                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized Force', linestyle=':', color='purple')
-
-                # Add labels and legend
-                ax.set_title("Force vs. % of Cycle (Simulated vs. Theoretical)")
+                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
+                h = input.g2_hover()
+                if h and h.get('x') is not None:
+                    ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
+                ax.set_title("Force vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
                 ax.legend()
-
+                fig.tight_layout()
                 return fig
 
-
             @render.plot
-            def velocity_cycle():
+            def g2_position():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
-                opt_results = results[2]
-
                 if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
                     return
-
-                # Create the plot
-                fig, ax = plt.subplots()
-
-                # Plot Simulated Velocity vs. % of Cycle
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['velocity'], label='Simulated Velocity', color='green')
-
-                # Plot Theoretical Velocity vs. % of Cycle
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['velocity'], label='Theoretical Velocity', color='lightgreen')
-
-                if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['velocity'], label='Optimized Velocity', linestyle=':', color='purple')
-
-                # Add labels and legend
-                ax.set_title("Velocity vs. % of Cycle (Simulated vs. Theoretical)")
-                ax.set_xlabel("% of Cycle")
-                ax.set_ylabel("Velocity (m/s)")
-                ax.legend()
-
-                return fig
-
-
-            @render.plot
-            def position_cycle():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-
-                if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
-                    return
-
-                # Create the plot
-                fig, ax = plt.subplots()
-
-                # Plot Simulated Position vs. % of Cycle
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated Position', color='orange')
-
-                # Plot Theoretical Position vs. % of Cycle
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical Position', color='darkorange')
-
-                # Add labels and legend
-                ax.set_title("Position vs. % of Cycle (Simulated vs. Theoretical)")
+                fig, ax = plt.subplots(figsize=(8, 3))
+                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated', color='orange')
+                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical', color='darkorange', linestyle='--')
+                h = input.g2_hover()
+                if h and h.get('x') is not None:
+                    ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
+                ax.set_title("Position vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Position (m)")
                 ax.legend()
-    
+                fig.tight_layout()
                 return fig
 
-
             @render.plot
-            def power_cycle():
+            def g2_workloop():
                 results = run_simulation()
                 sim_results = results[0]
                 theoretical_results = results[1]
                 opt_results = results[2]
-
                 if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
                     return
-
-                # Create the plot
-                fig, ax = plt.subplots()
-
-                # Plot Simulated Power vs. % of Cycle
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['power'], label='Simulated Power', color='red')
-
-                # Plot Theoretical Power vs. % of Cycle
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['power'], label='Theoretical Power', color='lightcoral')
-
+                fig, ax = plt.subplots(figsize=(8, 3.5))
+                ax.plot(sim_results['sim_data']['position'], sim_results['sim_data']['force_total'], label='Simulated', color='blue')
+                ax.plot(theoretical_results['sim_data']['position'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['power'], label='Optimized Power', linestyle=':', color='purple')
-
-                # Add labels and legend
-                ax.set_title("Power vs. % of Cycle (Simulated vs. Theoretical)")
-                ax.set_xlabel("% of Cycle")
-                ax.set_ylabel("Power (W)")
-                ax.legend()
-
-                return fig
-
-
-            @render.plot
-            def work_loop():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-                opt_results = results[2]
-
-                if sim_results is None or theoretical_results is None:
-                    print("Simulation failed: one or both result sets are None")
-                    return
-
-                # Create the plot
-                fig, ax = plt.subplots()
-
-                # Extract force and position data for the work-loop graph
-                force_total_sim = sim_results['sim_data']['force_total']
-                position_sim = sim_results['sim_data']['position']
-    
-                force_total_theoretical = theoretical_results['sim_data']['force_total']
-                position_theoretical = theoretical_results['sim_data']['position']
-
-                # Plot force vs. position (excursion) for both simulated and theoretical
-                ax.plot(position_sim, force_total_sim, label="Simulated Work Loop", color='blue')
-                ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--', color='orange')
-                if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
-
-                # Add labels and legend
+                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
+                h = input.g2_hover()
+                if h and h.get('x') is not None:
+                    pct = h['x']
+                    # Simulated cursor dot
+                    idx = int(np.argmin(np.abs(sim_results['sim_data']['cycle_pct'].values - pct)))
+                    ax.scatter([sim_results['sim_data']['position'].iloc[idx]],
+                               [sim_results['sim_data']['force_total'].iloc[idx]],
+                               color='red', s=80, zorder=5)
+                    # Theoretical cursor dot
+                    idx_t = int(np.argmin(np.abs(theoretical_results['sim_data']['cycle_pct'].values - pct)))
+                    ax.scatter([theoretical_results['sim_data']['position'].iloc[idx_t]],
+                               [theoretical_results['sim_data']['force_total'].iloc[idx_t]],
+                               color='red', s=80, marker='s', zorder=5)
                 ax.set_title("Work Loop (Force vs. Excursion)")
                 ax.set_xlabel("Excursion (m)")
                 ax.set_ylabel("Force (N)")
                 ax.legend()
-
+                fig.tight_layout()
                 return fig
 
    # New function to render the optimized onset/offset table
