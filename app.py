@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from shiny import reactive
-from shiny.express import input, output, render, ui, output_args
+from shiny.express import input, output, render, ui
 
 # Thelen muscle model with full calculations
 def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
@@ -439,10 +439,8 @@ with ui.card():
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
-            ui.p("Hover over the Force vs. Cycle graph to move the cursor across all plots.",
-                 style="color:#666; font-size:0.85em; margin-bottom:4px;")
+            ui.input_slider("g2_cursor", "Cursor (% of cycle)", min=0.0, max=1.24, value=0.0, step=0.005)
 
-            @output_args(hover=ui.hover_opts(delay=50, delay_type="throttle", clip=True))
             @render.plot
             def g2_force():
                 results = run_simulation()
@@ -456,9 +454,7 @@ with ui.card():
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
                     ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                h = input.g2_force_hover()
-                if h and h.get('x') is not None:
-                    ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
+                ax.axvline(x=input.g2_cursor(), color='red', linewidth=1.5, linestyle='--', alpha=0.8)
                 ax.set_title("Force vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
@@ -476,9 +472,7 @@ with ui.card():
                 fig, ax = plt.subplots(figsize=(8, 3))
                 ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated', color='orange')
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical', color='darkorange', linestyle='--')
-                h = input.g2_force_hover()
-                if h and h.get('x') is not None:
-                    ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
+                ax.axvline(x=input.g2_cursor(), color='red', linewidth=1.5, linestyle='--', alpha=0.8)
                 ax.set_title("Position vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Position (m)")
@@ -499,19 +493,15 @@ with ui.card():
                 ax.plot(theoretical_results['sim_data']['position'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
                     ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                h = input.g2_force_hover()
-                if h and h.get('x') is not None:
-                    pct = h['x']
-                    # Simulated cursor dot
-                    idx = int(np.argmin(np.abs(sim_results['sim_data']['cycle_pct'].values - pct)))
-                    ax.scatter([sim_results['sim_data']['position'].iloc[idx]],
-                               [sim_results['sim_data']['force_total'].iloc[idx]],
-                               color='red', s=80, zorder=5)
-                    # Theoretical cursor dot
-                    idx_t = int(np.argmin(np.abs(theoretical_results['sim_data']['cycle_pct'].values - pct)))
-                    ax.scatter([theoretical_results['sim_data']['position'].iloc[idx_t]],
-                               [theoretical_results['sim_data']['force_total'].iloc[idx_t]],
-                               color='red', s=80, marker='s', zorder=5)
+                pct = input.g2_cursor()
+                idx = int(np.argmin(np.abs(sim_results['sim_data']['cycle_pct'].values - pct)))
+                ax.scatter([sim_results['sim_data']['position'].iloc[idx]],
+                           [sim_results['sim_data']['force_total'].iloc[idx]],
+                           color='red', s=80, zorder=5)
+                idx_t = int(np.argmin(np.abs(theoretical_results['sim_data']['cycle_pct'].values - pct)))
+                ax.scatter([theoretical_results['sim_data']['position'].iloc[idx_t]],
+                           [theoretical_results['sim_data']['force_total'].iloc[idx_t]],
+                           color='red', s=80, marker='s', zorder=5)
                 ax.set_title("Work Loop (Force vs. Excursion)")
                 ax.set_xlabel("Excursion (m)")
                 ax.set_ylabel("Force (N)")
