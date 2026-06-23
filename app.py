@@ -442,8 +442,6 @@ with ui.card():
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Interactive Workloop"):
-            ui.p("Click on the Force graph to reveal data up to that point on all plots.",
-                 style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
             @reactive.effect
             @reactive.event(input.g2_force_click)
@@ -455,147 +453,149 @@ with ui.card():
                 except Exception:
                     pass
 
-            with ui.div(style="height: 160px; overflow: hidden; margin-bottom: 8px;"):
+            with ui.div(style="height: 150px; overflow: hidden; margin: 0 0 2px 0;"):
                 @output_args(click=True)
                 @render.plot
                 def g2_force():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-                opt_results = results[2]
-                if sim_results is None or theoretical_results is None:
-                    return
-                xmax = _g2_xmax()
+                    results = run_simulation()
+                    sim_results = results[0]
+                    theoretical_results = results[1]
+                    opt_results = results[2]
+                    if sim_results is None or theoretical_results is None:
+                        return
+                    xmax = _g2_xmax()
 
-                sim_data = sim_results['sim_data']
-                theo_data = theoretical_results['sim_data']
-                full_xmax = float(sim_data['cycle_pct'].max())
+                    sim_data = sim_results['sim_data']
+                    theo_data = theoretical_results['sim_data']
+                    full_xmax = float(sim_data['cycle_pct'].max())
 
-                if xmax is not None:
-                    sim_mask = sim_data['cycle_pct'].values <= xmax
-                    theo_mask = theo_data['cycle_pct'].values <= xmax
-                else:
-                    sim_mask = np.ones(len(sim_data), dtype=bool)
-                    theo_mask = np.ones(len(theo_data), dtype=bool)
+                    if xmax is not None:
+                        sim_mask = sim_data['cycle_pct'].values <= xmax
+                        theo_mask = theo_data['cycle_pct'].values <= xmax
+                    else:
+                        sim_mask = np.ones(len(sim_data), dtype=bool)
+                        theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                fig, ax = plt.subplots(figsize=(8, 1.4))
-                ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
-                ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
-                if opt_results is not None:
-                    opt_data = opt_results['sim_data']
-                    opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
-                    ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
-                ax.set_xlim(left=0, right=full_xmax)
-                ax.set_title("Force vs. % of Cycle  \u2190 click here to scrub")
-                ax.set_ylabel("Force (N)")
-                ax.legend()
-                fig.tight_layout()
-                return fig
+                    fig, ax = plt.subplots(figsize=(8, 1.35))
+                    ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
+                    ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
+                    if opt_results is not None:
+                        opt_data = opt_results['sim_data']
+                        opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
+                        ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+                    ax.set_xlim(left=0, right=full_xmax)
+                    ax.set_ylabel("Force (N)")
+                    ax.legend()
+                    fig.tight_layout(pad=0.5)
+                    return fig
 
-            with ui.div(style="height: 80px; overflow: hidden; margin-bottom: 8px;"):
+            with ui.div(style="height: 120px; overflow: hidden; margin: 0 0 2px 0;"):
                 @render.plot
                 def g2_position():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-                if sim_results is None or theoretical_results is None:
-                    return
-                xmax = _g2_xmax()
+                    results = run_simulation()
+                    sim_results = results[0]
+                    theoretical_results = results[1]
+                    if sim_results is None or theoretical_results is None:
+                        return
+                    xmax = _g2_xmax()
 
-                sim_data = sim_results['sim_data']
-                theo_data = theoretical_results['sim_data']
-                full_xmax = float(sim_data['cycle_pct'].max())
+                    sim_data = sim_results['sim_data']
+                    theo_data = theoretical_results['sim_data']
+                    full_xmax = float(sim_data['cycle_pct'].max())
 
-                if xmax is not None:
-                    sim_mask = sim_data['cycle_pct'].values <= xmax
-                    theo_mask = theo_data['cycle_pct'].values <= xmax
-                else:
-                    sim_mask = np.ones(len(sim_data), dtype=bool)
-                    theo_mask = np.ones(len(theo_data), dtype=bool)
+                    if xmax is not None:
+                        sim_mask = sim_data['cycle_pct'].values <= xmax
+                        theo_mask = theo_data['cycle_pct'].values <= xmax
+                    else:
+                        sim_mask = np.ones(len(sim_data), dtype=bool)
+                        theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                fig, ax = plt.subplots(figsize=(8, 0.7))
-                ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
-                ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
-                ax.set_xlim(left=0, right=full_xmax)
-                ax.set_title("Position vs. % of Cycle")
-                ax.set_ylabel("Position (m)")
-                ax.legend()
-                fig.tight_layout()
-                return fig
+                    fig, ax = plt.subplots(figsize=(8, 1.2))
+                    ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
+                    ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
+                    ax.set_xlim(left=0, right=full_xmax)
+                    ax.set_ylabel("Position (m)")
+                    ax.legend()
+                    fig.tight_layout(pad=0.5)
+                    return fig
 
-            with ui.div(style="height: 400px; overflow: hidden;"):
+            with ui.div(style="height: 400px; overflow: hidden; margin: 0;"):
                 @render.plot
                 def g2_workloop():
-                results = run_simulation()
-                sim_results = results[0]
-                theoretical_results = results[1]
-                opt_results = results[2]
-                if sim_results is None or theoretical_results is None:
-                    return
-                xmax = _g2_xmax()
-
-                sim_data = sim_results['sim_data']
-                theo_data = theoretical_results['sim_data']
-                if xmax is not None:
-                    sim_mask = sim_data['cycle_pct'].values <= xmax
-                    theo_mask = theo_data['cycle_pct'].values <= xmax
-                else:
-                    sim_mask = np.ones(len(sim_data), dtype=bool)
-                    theo_mask = np.ones(len(theo_data), dtype=bool)
-
-                # Fix axes to full data range so they don't rescale
-                full_pos = pd.concat([sim_data['position'], theo_data['position']])
-                full_force = pd.concat([sim_data['force_total'], theo_data['force_total']])
-                pos_margin = (full_pos.max() - full_pos.min()) * 0.05
-                force_margin = (full_force.max() - full_force.min()) * 0.05
-
-                fig, ax = plt.subplots(figsize=(8, 3.5))
-                ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
-                ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
-                if opt_results is not None:
-                    opt_data = opt_results['sim_data']
-                    opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
-                    ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
-                # Add directional arrows along the visible trajectory; more appear as scrub progress increases.
-                def _add_path_arrows(x_vals, y_vals, color):
-                    x = np.asarray(x_vals)
-                    y = np.asarray(y_vals)
-                    n = len(x)
-                    if n < 2:
+                    results = run_simulation()
+                    sim_results = results[0]
+                    theoretical_results = results[1]
+                    opt_results = results[2]
+                    if sim_results is None or theoretical_results is None:
                         return
+                    xmax = _g2_xmax()
 
-                    stride = 12
-                    for i1 in range(stride, n, stride):
-                        i0 = i1 - 1
+                    sim_data = sim_results['sim_data']
+                    theo_data = theoretical_results['sim_data']
+                    if xmax is not None:
+                        sim_mask = sim_data['cycle_pct'].values <= xmax
+                        theo_mask = theo_data['cycle_pct'].values <= xmax
+                    else:
+                        sim_mask = np.ones(len(sim_data), dtype=bool)
+                        theo_mask = np.ones(len(theo_data), dtype=bool)
+
+                    # Fix axes to full data range so they don't rescale
+                    full_pos = pd.concat([sim_data['position'], theo_data['position']])
+                    full_force = pd.concat([sim_data['force_total'], theo_data['force_total']])
+                    pos_margin = (full_pos.max() - full_pos.min()) * 0.05
+                    force_margin = (full_force.max() - full_force.min()) * 0.05
+
+                    fig, ax = plt.subplots(figsize=(8, 3.5))
+                    ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
+                    ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
+                    if opt_results is not None:
+                        opt_data = opt_results['sim_data']
+                        opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
+                        ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+                    # Add directional arrows along the visible trajectory; more appear as scrub progress increases.
+                    def _add_path_arrows(x_vals, y_vals, color):
+                        x = np.asarray(x_vals)
+                        y = np.asarray(y_vals)
+                        n = len(x)
+                        if n < 2:
+                            return
+
+                        stride = 12
+                        for i1 in range(stride, n, stride):
+                            i0 = i1 - 1
+                            ax.annotate(
+                                "",
+                                xy=(x[i1], y[i1]),
+                                xytext=(x[i0], y[i0]),
+                                arrowprops=dict(arrowstyle="-|>", color=color, lw=1.5, mutation_scale=10, shrinkA=0, shrinkB=0),
+                                zorder=6,
+                            )
+
+                        # Always show an arrow at the tip of the currently visible trajectory.
                         ax.annotate(
                             "",
-                            xy=(x[i1], y[i1]),
-                            xytext=(x[i0], y[i0]),
-                            arrowprops=dict(arrowstyle="-|>", color=color, lw=1.5, mutation_scale=10, shrinkA=0, shrinkB=0),
-                            zorder=6,
+                            xy=(x[-1], y[-1]),
+                            xytext=(x[-2], y[-2]),
+                            arrowprops=dict(arrowstyle="-|>", color=color, lw=2, mutation_scale=12, shrinkA=0, shrinkB=0),
+                            zorder=7,
                         )
 
-                    # Always show an arrow at the tip of the currently visible trajectory.
-                    ax.annotate(
-                        "",
-                        xy=(x[-1], y[-1]),
-                        xytext=(x[-2], y[-2]),
-                        arrowprops=dict(arrowstyle="-|>", color=color, lw=2, mutation_scale=12, shrinkA=0, shrinkB=0),
-                        zorder=7,
-                    )
+                    _add_path_arrows(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], 'blue')
+                    _add_path_arrows(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], 'orange')
+                    if opt_results is not None:
+                        _add_path_arrows(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], 'purple')
+                    ax.set_xlim(full_pos.min() - pos_margin, full_pos.max() + pos_margin)
+                    ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
+                    ax.set_xlabel("Excursion (m)")
+                    ax.set_ylabel("Force (N)")
+                    ax.legend()
+                    fig.tight_layout(pad=0.5)
+                    return fig
 
-                _add_path_arrows(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], 'blue')
-                _add_path_arrows(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], 'orange')
-                if opt_results is not None:
-                    _add_path_arrows(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], 'purple')
-                ax.set_xlim(full_pos.min() - pos_margin, full_pos.max() + pos_margin)
-                ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
-                ax.set_title("Work Loop (Force vs. Excursion)")
-                ax.set_xlabel("Excursion (m)")
-                ax.set_ylabel("Force (N)")
-                ax.legend()
-                fig.tight_layout()
-                return fig
+            ui.p(
+                "Click on the Force graph to reveal data up to that point on all plots.",
+                style="color:#666; font-size:0.85em; margin-top:4px; margin-bottom:0;",
+            )
 
    # New function to render the optimized onset/offset table
 @render.ui
