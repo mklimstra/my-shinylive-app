@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from shiny import reactive
-from shiny.express import input, output, render, ui
+from shiny.express import input, output, render, ui, output_args
 
 # Thelen muscle model with full calculations
 def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
@@ -439,8 +439,10 @@ with ui.card():
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
-            ui.input_slider("g2_cursor", "Cursor (% of cycle)", min=0.0, max=1.24, value=0.0, step=0.005)
+            ui.p("Draw a selection on the Force graph to reveal data up to that point on all plots.",
+                 style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
+            @output_args(brush=ui.brush_opts(direction="x", delay=100, delay_type="throttle"))
             @render.plot
             def g2_force():
                 results = run_simulation()
@@ -449,13 +451,20 @@ with ui.card():
                 opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     return
+                try:
+                    b = input.g2_force_brush()
+                except Exception:
+                    b = None
+                xmax = b['xmax'] if b else None
+
                 fig, ax = plt.subplots(figsize=(8, 3))
                 ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['force_total'], label='Simulated', color='blue')
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
                     ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                ax.axvline(x=input.g2_cursor(), color='red', linewidth=1.5, linestyle='--', alpha=0.8)
-                ax.set_title("Force vs. % of Cycle")
+                if xmax is not None:
+                    ax.set_xlim(left=0, right=xmax)
+                ax.set_title("Force vs. % of Cycle  \u2190 draw here to scrub")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
                 ax.legend()
@@ -469,10 +478,17 @@ with ui.card():
                 theoretical_results = results[1]
                 if sim_results is None or theoretical_results is None:
                     return
+                try:
+                    b = input.g2_force_brush()
+                except Exception:
+                    b = None
+                xmax = b['xmax'] if b else None
+
                 fig, ax = plt.subplots(figsize=(8, 3))
                 ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated', color='orange')
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical', color='darkorange', linestyle='--')
-                ax.axvline(x=input.g2_cursor(), color='red', linewidth=1.5, linestyle='--', alpha=0.8)
+                if xmax is not None:
+                    ax.set_xlim(left=0, right=xmax)
                 ax.set_title("Position vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Position (m)")
@@ -488,20 +504,34 @@ with ui.card():
                 opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     return
+                try:
+                    b = input.g2_force_brush()
+                except Exception:
+                    b = None
+                xmax = b['xmax'] if b else None
+
+                sim_data = sim_results['sim_data']
+                theo_data = theoretical_results['sim_data']
+                if xmax is not None:
+                    sim_mask = sim_data['cycle_pct'].values <= xmax
+                    theo_mask = theo_data['cycle_pct'].values <= xmax
+                else:
+                    sim_mask = np.ones(len(sim_data), dtype=bool)
+                    theo_mask = np.ones(len(theo_data), dtype=bool)
+
                 fig, ax = plt.subplots(figsize=(8, 3.5))
-                ax.plot(sim_results['sim_data']['position'], sim_results['sim_data']['force_total'], label='Simulated', color='blue')
-                ax.plot(theoretical_results['sim_data']['position'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
+                ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
+                ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                pct = input.g2_cursor()
-                idx = int(np.argmin(np.abs(sim_results['sim_data']['cycle_pct'].values - pct)))
-                ax.scatter([sim_results['sim_data']['position'].iloc[idx]],
-                           [sim_results['sim_data']['force_total'].iloc[idx]],
-                           color='red', s=80, zorder=5)
-                idx_t = int(np.argmin(np.abs(theoretical_results['sim_data']['cycle_pct'].values - pct)))
-                ax.scatter([theoretical_results['sim_data']['position'].iloc[idx_t]],
-                           [theoretical_results['sim_data']['force_total'].iloc[idx_t]],
-                           color='red', s=80, marker='s', zorder=5)
+                    opt_data = opt_results['sim_data']
+                    opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
+                    ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+                # Mark endpoint dot at the brush position
+                if xmax is not None and sim_mask.any():
+                    last_sim = sim_mask.nonzero()[0][-1]
+                    last_theo = theo_mask.nonzero()[0][-1]
+                    ax.scatter([sim_data['position'].iloc[last_sim]], [sim_data['force_total'].iloc[last_sim]], color='blue', s=60, zorder=5)
+                    ax.scatter([theo_data['position'].iloc[last_theo]], [theo_data['force_total'].iloc[last_theo]], color='orange', s=60, zorder=5)
                 ax.set_title("Work Loop (Force vs. Excursion)")
                 ax.set_xlabel("Excursion (m)")
                 ax.set_ylabel("Force (N)")
