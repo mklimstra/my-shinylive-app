@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 from shiny import reactive
@@ -454,7 +455,7 @@ with ui.card():
                     pass
 
             with ui.div(style="margin: 0 0 6px 0;"):
-                @output_args(click=True)
+                @output_args(click=True, height="180px")
                 @render.plot
                 def g2_force():
                     results = run_simulation()
@@ -477,7 +478,6 @@ with ui.card():
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
                     fig, ax = plt.subplots(figsize=(8, 0.75))
-                    fig.text(0.0, 0.5, "0000.000", color="white", ha="left", va="center")
                     ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
                     ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                     if opt_results is not None:
@@ -486,10 +486,12 @@ with ui.card():
                         ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Force (N)")
+                    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
             with ui.div(style="margin: 0 0 6px 0;"):
+                @output_args(height="180px")
                 @render.plot
                 def g2_position():
                     results = run_simulation()
@@ -511,15 +513,16 @@ with ui.card():
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
                     fig, ax = plt.subplots(figsize=(8, 0.7))
-                    fig.text(0.0, 0.5, "0000.000", color="white", ha="left", va="center")
                     ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
                     ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Position (m)")
+                    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
             with ui.div(style="margin: 0;"):
+                @output_args(height="360px")
                 @render.plot
                 def g2_workloop():
                     results = run_simulation()
@@ -546,7 +549,6 @@ with ui.card():
                     force_margin = (full_force.max() - full_force.min()) * 0.05
 
                     fig, ax = plt.subplots(figsize=(8, 3.5))
-                    fig.text(0.0, 0.5, "0000.000", color="white", ha="left", va="center")
                     ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
                     ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                     if opt_results is not None:
@@ -590,6 +592,7 @@ with ui.card():
                     ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
                     ax.set_xlabel("Excursion (m)")
                     ax.set_ylabel("Force (N)")
+                    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.16, top=0.98)
                     return fig
 
