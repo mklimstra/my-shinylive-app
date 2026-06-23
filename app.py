@@ -455,7 +455,7 @@ with ui.card():
                 except Exception:
                     pass
 
-            @output_args(click=True)
+            @output_args(click=True, height="160px")
             @render.plot
             def g2_force():
                 results = run_simulation()
@@ -491,6 +491,7 @@ with ui.card():
                 fig.tight_layout()
                 return fig
 
+            @output_args(height="80px")
             @render.plot
             def g2_position():
                 results = run_simulation()
