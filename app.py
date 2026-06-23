@@ -453,7 +453,7 @@ with ui.card():
                 except Exception:
                     pass
 
-            with ui.div(style="height: 140px; overflow: hidden; margin: -6px 0 2px 0;"):
+            with ui.div(style="height: 160px; overflow: hidden; margin: 0 0 6px 0;"):
                 @output_args(click=True)
                 @render.plot
                 def g2_force():
@@ -476,7 +476,7 @@ with ui.card():
                         sim_mask = np.ones(len(sim_data), dtype=bool)
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                    fig, ax = plt.subplots(figsize=(8, 1.35))
+                    fig, ax = plt.subplots(figsize=(8, 1.45))
                     ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
                     ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                     if opt_results is not None:
@@ -485,10 +485,10 @@ with ui.card():
                         ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Force (N)")
-                    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.28, top=0.99)
+                    fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
-            with ui.div(style="height: 140px; overflow: hidden; margin: 0 0 2px 0;"):
+            with ui.div(style="height: 150px; overflow: hidden; margin: 0 0 6px 0;"):
                 @render.plot
                 def g2_position():
                     results = run_simulation()
@@ -509,12 +509,12 @@ with ui.card():
                         sim_mask = np.ones(len(sim_data), dtype=bool)
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
-                    fig, ax = plt.subplots(figsize=(8, 1.2))
+                    fig, ax = plt.subplots(figsize=(8, 1.35))
                     ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
                     ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Position (m)")
-                    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.28, top=0.99)
+                    fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
 
             with ui.div(style="height: 400px; overflow: hidden; margin: 0;"):
@@ -550,6 +550,7 @@ with ui.card():
                         opt_data = opt_results['sim_data']
                         opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
                         ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+
                     # Add directional arrows along the visible trajectory; more appear as scrub progress increases.
                     def _add_path_arrows(x_vals, y_vals, color):
                         x = np.asarray(x_vals)
@@ -586,7 +587,7 @@ with ui.card():
                     ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
                     ax.set_xlabel("Excursion (m)")
                     ax.set_ylabel("Force (N)")
-                    fig.subplots_adjust(left=0.10, right=0.99, bottom=0.16, top=0.99)
+                    fig.subplots_adjust(left=0.16, right=0.99, bottom=0.16, top=0.98)
                     return fig
 
             ui.p(
