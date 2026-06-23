@@ -439,10 +439,10 @@ with ui.card():
                 return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
-            ui.p("Draw a selection on the Force graph to reveal data up to that point on all plots.",
+            ui.p("Click on the Force graph to reveal data up to that point on all plots.",
                  style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
-            @output_args(brush=ui.brush_opts(direction="x", delay=100, delay_type="throttle"))
+            @output_args(click=True)
             @render.plot
             def g2_force():
                 results = run_simulation()
@@ -452,10 +452,10 @@ with ui.card():
                 if sim_results is None or theoretical_results is None:
                     return
                 try:
-                    b = input.g2_force_brush()
+                    b = input.g2_force_click()
                 except Exception:
                     b = None
-                xmax = b['xmax'] if b else None
+                xmax = b['x'] if b else None
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
@@ -476,7 +476,7 @@ with ui.card():
                     opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
                     ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                 ax.set_xlim(left=0, right=full_xmax)
-                ax.set_title("Force vs. % of Cycle  \u2190 draw here to scrub")
+                ax.set_title("Force vs. % of Cycle  \u2190 click here to scrub")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
                 ax.legend()
@@ -491,10 +491,10 @@ with ui.card():
                 if sim_results is None or theoretical_results is None:
                     return
                 try:
-                    b = input.g2_force_brush()
+                    b = input.g2_force_click()
                 except Exception:
                     b = None
-                xmax = b['xmax'] if b else None
+                xmax = b['x'] if b else None
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
@@ -527,10 +527,10 @@ with ui.card():
                 if sim_results is None or theoretical_results is None:
                     return
                 try:
-                    b = input.g2_force_brush()
+                    b = input.g2_force_click()
                 except Exception:
                     b = None
-                xmax = b['xmax'] if b else None
+                xmax = b['x'] if b else None
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
