@@ -453,7 +453,7 @@ with ui.card():
                 except Exception:
                     pass
 
-            with ui.div(style="height: 150px; overflow: hidden; margin: 0 0 2px 0;"):
+            with ui.div(style="height: 140px; overflow: hidden; margin: -6px 0 2px 0;"):
                 @output_args(click=True)
                 @render.plot
                 def g2_force():
@@ -485,11 +485,10 @@ with ui.card():
                         ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Force (N)")
-                    ax.legend()
-                    fig.tight_layout(pad=0.5)
+                    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.28, top=0.99)
                     return fig
 
-            with ui.div(style="height: 120px; overflow: hidden; margin: 0 0 2px 0;"):
+            with ui.div(style="height: 140px; overflow: hidden; margin: 0 0 2px 0;"):
                 @render.plot
                 def g2_position():
                     results = run_simulation()
@@ -515,8 +514,7 @@ with ui.card():
                     ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
                     ax.set_xlim(left=0, right=full_xmax)
                     ax.set_ylabel("Position (m)")
-                    ax.legend()
-                    fig.tight_layout(pad=0.5)
+                    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.28, top=0.99)
                     return fig
 
             with ui.div(style="height: 400px; overflow: hidden; margin: 0;"):
@@ -588,8 +586,7 @@ with ui.card():
                     ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
                     ax.set_xlabel("Excursion (m)")
                     ax.set_ylabel("Force (N)")
-                    ax.legend()
-                    fig.tight_layout(pad=0.5)
+                    fig.subplots_adjust(left=0.10, right=0.99, bottom=0.16, top=0.99)
                     return fig
 
             ui.p(
