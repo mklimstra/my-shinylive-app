@@ -457,13 +457,25 @@ with ui.card():
                     b = None
                 xmax = b['xmax'] if b else None
 
-                fig, ax = plt.subplots(figsize=(8, 3))
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['force_total'], label='Simulated', color='blue')
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
-                if opt_results is not None:
-                    ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
+                sim_data = sim_results['sim_data']
+                theo_data = theoretical_results['sim_data']
+                full_xmax = float(sim_data['cycle_pct'].max())
+
                 if xmax is not None:
-                    ax.set_xlim(left=0, right=xmax)
+                    sim_mask = sim_data['cycle_pct'].values <= xmax
+                    theo_mask = theo_data['cycle_pct'].values <= xmax
+                else:
+                    sim_mask = np.ones(len(sim_data), dtype=bool)
+                    theo_mask = np.ones(len(theo_data), dtype=bool)
+
+                fig, ax = plt.subplots(figsize=(8, 3))
+                ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
+                ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
+                if opt_results is not None:
+                    opt_data = opt_results['sim_data']
+                    opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
+                    ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+                ax.set_xlim(left=0, right=full_xmax)
                 ax.set_title("Force vs. % of Cycle  \u2190 draw here to scrub")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Force (N)")
@@ -484,11 +496,21 @@ with ui.card():
                     b = None
                 xmax = b['xmax'] if b else None
 
-                fig, ax = plt.subplots(figsize=(8, 3))
-                ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated', color='orange')
-                ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical', color='darkorange', linestyle='--')
+                sim_data = sim_results['sim_data']
+                theo_data = theoretical_results['sim_data']
+                full_xmax = float(sim_data['cycle_pct'].max())
+
                 if xmax is not None:
-                    ax.set_xlim(left=0, right=xmax)
+                    sim_mask = sim_data['cycle_pct'].values <= xmax
+                    theo_mask = theo_data['cycle_pct'].values <= xmax
+                else:
+                    sim_mask = np.ones(len(sim_data), dtype=bool)
+                    theo_mask = np.ones(len(theo_data), dtype=bool)
+
+                fig, ax = plt.subplots(figsize=(8, 3))
+                ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
+                ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
+                ax.set_xlim(left=0, right=full_xmax)
                 ax.set_title("Position vs. % of Cycle")
                 ax.set_xlabel("% of Cycle")
                 ax.set_ylabel("Position (m)")
@@ -519,6 +541,12 @@ with ui.card():
                     sim_mask = np.ones(len(sim_data), dtype=bool)
                     theo_mask = np.ones(len(theo_data), dtype=bool)
 
+                # Fix axes to full data range so they don't rescale
+                full_pos = pd.concat([sim_data['position'], theo_data['position']])
+                full_force = pd.concat([sim_data['force_total'], theo_data['force_total']])
+                pos_margin = (full_pos.max() - full_pos.min()) * 0.05
+                force_margin = (full_force.max() - full_force.min()) * 0.05
+
                 fig, ax = plt.subplots(figsize=(8, 3.5))
                 ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
                 ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
@@ -526,12 +554,14 @@ with ui.card():
                     opt_data = opt_results['sim_data']
                     opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
                     ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
-                # Mark endpoint dot at the brush position
+                # Mark endpoint dot
                 if xmax is not None and sim_mask.any():
                     last_sim = sim_mask.nonzero()[0][-1]
                     last_theo = theo_mask.nonzero()[0][-1]
                     ax.scatter([sim_data['position'].iloc[last_sim]], [sim_data['force_total'].iloc[last_sim]], color='blue', s=60, zorder=5)
                     ax.scatter([theo_data['position'].iloc[last_theo]], [theo_data['force_total'].iloc[last_theo]], color='orange', s=60, zorder=5)
+                ax.set_xlim(full_pos.min() - pos_margin, full_pos.max() + pos_margin)
+                ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
                 ax.set_title("Work Loop (Force vs. Excursion)")
                 ax.set_xlabel("Excursion (m)")
                 ax.set_ylabel("Force (N)")
