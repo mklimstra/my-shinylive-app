@@ -401,42 +401,42 @@ with ui.card():
 
                     return fig
 
-                @render.ui
-                def workloop_metrics():
-                    r = run_simulation()
-                    sim = r[0]
-                    theo = r[1]
-                    opt = r[2]
-                    if sim is None or theo is None:
-                        return ui.p("No results available")
-                    opt_col = [
-                        round(opt['work_actual'], 4),
-                        round(opt['work_positive'], 4),
-                        round(opt['work_negative'], 4),
-                        round(opt['power_actual'], 4),
-                    ] if opt is not None else ["\u2014", "\u2014", "\u2014", "\u2014"]
-                    headers = ["Metric", "Simulated", "Theoretical", "Optimized"]
-                    rows = [
-                        ["Total Work (J)",    round(sim['work_actual'], 4),   round(theo['work_actual'], 4),   opt_col[0]],
-                        ["Positive Work (J)", round(sim['work_positive'], 4), round(theo['work_positive'], 4), opt_col[1]],
-                        ["Negative Work (J)", round(sim['work_negative'], 4), round(theo['work_negative'], 4), opt_col[2]],
-                        ["Mean Power (W)",    round(sim['power_actual'], 4),  round(theo['power_actual'], 4),  opt_col[3]],
-                    ]
-                    th = "style='padding:8px 14px; border:1px solid #ccc; background:#f0f0f0; font-weight:bold; text-align:center; white-space:nowrap;'"
-                    td = "style='padding:8px 14px; border:1px solid #ccc; text-align:center;'"
-                    td_left = "style='padding:8px 14px; border:1px solid #ccc; text-align:left; white-space:nowrap;'"
-                    html = "<table style='border-collapse:collapse; width:auto; margin-top:1rem;'><thead><tr>"
-                    for h in headers:
-                        html += f"<th {th}>{h}</th>"
-                    html += "</tr></thead><tbody>"
-                    for row in rows:
-                        html += "<tr>"
-                        html += f"<td {td_left}>{row[0]}</td>"
-                        for cell in row[1:]:
-                            html += f"<td {td}>{cell}</td>"
-                        html += "</tr>"
-                    html += "</tbody></table>"
-                    return ui.div(ui.HTML(html), class_="tbl-scroll")
+            @render.ui
+            def workloop_metrics():
+                r = run_simulation()
+                sim = r[0]
+                theo = r[1]
+                opt = r[2]
+                if sim is None or theo is None:
+                    return ui.p("No results available")
+                opt_col = [
+                    round(opt['work_actual'], 4),
+                    round(opt['work_positive'], 4),
+                    round(opt['work_negative'], 4),
+                    round(opt['power_actual'], 4),
+                ] if opt is not None else ["\u2014", "\u2014", "\u2014", "\u2014"]
+                headers = ["Metric", "Simulated", "Theoretical", "Optimized"]
+                rows = [
+                    ["Total Work (J)",    round(sim['work_actual'], 4),   round(theo['work_actual'], 4),   opt_col[0]],
+                    ["Positive Work (J)", round(sim['work_positive'], 4), round(theo['work_positive'], 4), opt_col[1]],
+                    ["Negative Work (J)", round(sim['work_negative'], 4), round(theo['work_negative'], 4), opt_col[2]],
+                    ["Mean Power (W)",    round(sim['power_actual'], 4),  round(theo['power_actual'], 4),  opt_col[3]],
+                ]
+                th = "style='padding:8px 14px; border:1px solid #ccc; background:#f0f0f0; font-weight:bold; text-align:center; white-space:nowrap;'"
+                td = "style='padding:8px 14px; border:1px solid #ccc; text-align:center;'"
+                td_left = "style='padding:8px 14px; border:1px solid #ccc; text-align:left; white-space:nowrap;'"
+                html = "<table style='border-collapse:collapse; width:auto; margin-top:1rem;'><thead><tr>"
+                for h in headers:
+                    html += f"<th {th}>{h}</th>"
+                html += "</tr></thead><tbody>"
+                for row in rows:
+                    html += "<tr>"
+                    html += f"<td {td_left}>{row[0]}</td>"
+                    for cell in row[1:]:
+                        html += f"<td {td}>{cell}</td>"
+                    html += "</tr>"
+                html += "</tbody></table>"
+                return ui.div(ui.HTML(html), class_="tbl-scroll")
 
         with ui.nav_panel(title="Graphs2"):
             
