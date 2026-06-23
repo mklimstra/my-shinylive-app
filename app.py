@@ -205,6 +205,9 @@ def run_simulation():
     
     return sim_results, theoretical_results, opt_results
 
+# Persistent click position for Graphs2 scrubbing
+_g2_xmax = reactive.Value(None)
+
 # Info modal handler
 @reactive.effect
 @reactive.event(input.info_btn)
@@ -442,6 +445,16 @@ with ui.card():
             ui.p("Click on the Force graph to reveal data up to that point on all plots.",
                  style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
+            @reactive.effect
+            @reactive.event(input.g2_force_click)
+            def _store_g2_click():
+                try:
+                    c = input.g2_force_click()
+                    if c is not None:
+                        _g2_xmax.set(c['x'])
+                except Exception:
+                    pass
+
             @output_args(click=True)
             @render.plot
             def g2_force():
@@ -451,11 +464,7 @@ with ui.card():
                 opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     return
-                try:
-                    b = input.g2_force_click()
-                except Exception:
-                    b = None
-                xmax = b['x'] if b else None
+                xmax = _g2_xmax()
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
@@ -490,11 +499,7 @@ with ui.card():
                 theoretical_results = results[1]
                 if sim_results is None or theoretical_results is None:
                     return
-                try:
-                    b = input.g2_force_click()
-                except Exception:
-                    b = None
-                xmax = b['x'] if b else None
+                xmax = _g2_xmax()
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
@@ -526,11 +531,7 @@ with ui.card():
                 opt_results = results[2]
                 if sim_results is None or theoretical_results is None:
                     return
-                try:
-                    b = input.g2_force_click()
-                except Exception:
-                    b = None
-                xmax = b['x'] if b else None
+                xmax = _g2_xmax()
 
                 sim_data = sim_results['sim_data']
                 theo_data = theoretical_results['sim_data']
