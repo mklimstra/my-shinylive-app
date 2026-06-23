@@ -442,7 +442,7 @@ with ui.card():
             ui.p("Hover over the Force vs. Cycle graph to move the cursor across all plots.",
                  style="color:#666; font-size:0.85em; margin-bottom:4px;")
 
-            @output_args(hover=ui.hover_opts(id="g2_hover", delay=50, delay_type="throttle", clip=True))
+            @output_args(hover=ui.hover_opts(delay=50, delay_type="throttle", clip=True))
             @render.plot
             def g2_force():
                 results = run_simulation()
@@ -456,7 +456,7 @@ with ui.card():
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
                     ax.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                h = input.g2_hover()
+                h = input.g2_force_hover()
                 if h and h.get('x') is not None:
                     ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
                 ax.set_title("Force vs. % of Cycle")
@@ -476,7 +476,7 @@ with ui.card():
                 fig, ax = plt.subplots(figsize=(8, 3))
                 ax.plot(sim_results['sim_data']['cycle_pct'], sim_results['sim_data']['position'], label='Simulated', color='orange')
                 ax.plot(theoretical_results['sim_data']['cycle_pct'], theoretical_results['sim_data']['position'], label='Theoretical', color='darkorange', linestyle='--')
-                h = input.g2_hover()
+                h = input.g2_force_hover()
                 if h and h.get('x') is not None:
                     ax.axvline(x=h['x'], color='red', linewidth=1.5, linestyle='--', alpha=0.8)
                 ax.set_title("Position vs. % of Cycle")
@@ -499,7 +499,7 @@ with ui.card():
                 ax.plot(theoretical_results['sim_data']['position'], theoretical_results['sim_data']['force_total'], label='Theoretical', color='orange', linestyle='--')
                 if opt_results is not None:
                     ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label='Optimized', linestyle=':', color='purple')
-                h = input.g2_hover()
+                h = input.g2_force_hover()
                 if h and h.get('x') is not None:
                     pct = h['x']
                     # Simulated cursor dot
