@@ -24,9 +24,9 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         k_shape = 0.5
         w = L0 * np.sin(penn0)
 
-        # Time and cycle percentage
-        t = np.arange(0, 1.25 / freq, dt)
-        cycle_pct = t * freq
+        # Time and cycle percentage (single full cycle)
+        t = np.arange(0, (1 / freq) + dt, dt)
+        cycle_pct = t * freq * 100
 
         # Position
         position = excursion * np.sin(2 * np.pi * freq * t)
@@ -73,7 +73,11 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         work_actual = np.sum(work)
         work_positive = np.sum(work[work > 0])
         work_negative = np.sum(work[work < 0])
-        power_actual = np.mean(power[(t >= onset_time) & (t <= onset_time + 1)])
+        active_mask = (t >= onset_time) & (t <= offset_time)
+        if np.any(active_mask):
+            power_actual = np.mean(power[active_mask])
+        else:
+            power_actual = np.mean(power)
 
         # Data to return
         sim_data = pd.DataFrame({
@@ -345,14 +349,14 @@ with ui.card():
                 ax_v.legend(**legend_kw)
 
                 # Position
-                ax_p.plot(cycle_pct_sim, sim_results['sim_data']['position'], color="orange", label='Simulated')
-                ax_p.plot(cycle_pct_theoretical, theoretical_results['sim_data']['position'], color="darkorange", linestyle='--', label='Theoretical')
+                ax_p.plot(cycle_pct_sim, sim_results['sim_data']['position_mm'], color="orange", label='Simulated')
+                ax_p.plot(cycle_pct_theoretical, theoretical_results['sim_data']['position_mm'], color="darkorange", linestyle='--', label='Theoretical')
                 if opt_results is not None:
-                    ax_p.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position'], label='Optimized', linestyle=':', color='purple')
+                    ax_p.plot(opt_results['sim_data']['cycle_pct'], opt_results['sim_data']['position_mm'], label='Optimized', linestyle=':', color='purple')
                 ax_p.set_title("Position vs. % of Cycle", **title_kw)
                 ax_p.set_xlabel("% of Cycle", **xlabel_kw)
                 if not is_mobile:
-                    ax_p.set_ylabel("Position (m)")
+                    ax_p.set_ylabel("Position (mm)")
                 ax_p.tick_params(**tick_kw)
                 ax_p.legend(**legend_kw)
 
@@ -367,6 +371,9 @@ with ui.card():
                     ax_pw.set_ylabel("Power (W)")
                 ax_pw.tick_params(**tick_kw)
                 ax_pw.legend(**legend_kw)
+
+                for ax in [ax_f, ax_v, ax_p, ax_pw]:
+                    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
 
                 fig.tight_layout()
                 return fig
@@ -387,19 +394,19 @@ with ui.card():
 
                     # Extract force and position data for the work-loop graph
                     force_total_sim = sim_results['sim_data']['force_total']
-                    position_sim = sim_results['sim_data']['position']
+                    position_sim = sim_results['sim_data']['position_mm']
 
                     force_total_theoretical = theoretical_results['sim_data']['force_total']
-                    position_theoretical = theoretical_results['sim_data']['position']
+                    position_theoretical = theoretical_results['sim_data']['position_mm']
 
                     # Plot force vs. position (excursion)
                     ax.plot(position_sim, force_total_sim, label="Simulated Work Loop")
                     ax.plot(position_theoretical, force_total_theoretical, label="Theoretical Work Loop", linestyle='--')
                     if opt_results is not None:
-                        ax.plot(opt_results['sim_data']['position'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
+                        ax.plot(opt_results['sim_data']['position_mm'], opt_results['sim_data']['force_total'], label="Optimized Work Loop", linestyle=':', color='purple')
 
                     ax.set_title("Work Loop (Force vs. Excursion)")
-                    ax.set_xlabel("Excursion (m)")
+                    ax.set_xlabel("Excursion (mm)")
                     ax.set_ylabel("Force (N)")
                     ax.legend()
 
@@ -485,6 +492,7 @@ with ui.card():
                         opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
                         ax.plot(opt_data['cycle_pct'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
                     ax.set_xlim(left=0, right=full_xmax)
+                    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
                     ax.set_ylabel("Force (N)")
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
@@ -513,10 +521,11 @@ with ui.card():
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
                     fig, ax = plt.subplots(figsize=(8, 0.7))
-                    ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position'][sim_mask], label='Simulated', color='orange')
-                    ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
+                    ax.plot(sim_data['cycle_pct'][sim_mask], sim_data['position_mm'][sim_mask], label='Simulated', color='orange')
+                    ax.plot(theo_data['cycle_pct'][theo_mask], theo_data['position_mm'][theo_mask], label='Theoretical', color='darkorange', linestyle='--')
                     ax.set_xlim(left=0, right=full_xmax)
-                    ax.set_ylabel("Position (m)")
+                    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
+                    ax.set_ylabel("Position (mm)")
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.24, top=0.98)
                     return fig
@@ -543,18 +552,18 @@ with ui.card():
                         theo_mask = np.ones(len(theo_data), dtype=bool)
 
                     # Fix axes to full data range so they don't rescale
-                    full_pos = pd.concat([sim_data['position'], theo_data['position']])
+                    full_pos = pd.concat([sim_data['position_mm'], theo_data['position_mm']])
                     full_force = pd.concat([sim_data['force_total'], theo_data['force_total']])
                     pos_margin = (full_pos.max() - full_pos.min()) * 0.05
                     force_margin = (full_force.max() - full_force.min()) * 0.05
 
                     fig, ax = plt.subplots(figsize=(8, 3.5))
-                    ax.plot(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
-                    ax.plot(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
+                    ax.plot(sim_data['position_mm'][sim_mask], sim_data['force_total'][sim_mask], label='Simulated', color='blue')
+                    ax.plot(theo_data['position_mm'][theo_mask], theo_data['force_total'][theo_mask], label='Theoretical', color='orange', linestyle='--')
                     if opt_results is not None:
                         opt_data = opt_results['sim_data']
                         opt_mask = opt_data['cycle_pct'].values <= xmax if xmax is not None else np.ones(len(opt_data), dtype=bool)
-                        ax.plot(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
+                        ax.plot(opt_data['position_mm'][opt_mask], opt_data['force_total'][opt_mask], label='Optimized', linestyle=':', color='purple')
 
                     # Add directional arrows along the visible trajectory; more appear as scrub progress increases.
                     def _add_path_arrows(x_vals, y_vals, color):
@@ -584,13 +593,13 @@ with ui.card():
                             zorder=7,
                         )
 
-                    _add_path_arrows(sim_data['position'][sim_mask], sim_data['force_total'][sim_mask], 'blue')
-                    _add_path_arrows(theo_data['position'][theo_mask], theo_data['force_total'][theo_mask], 'orange')
+                    _add_path_arrows(sim_data['position_mm'][sim_mask], sim_data['force_total'][sim_mask], 'blue')
+                    _add_path_arrows(theo_data['position_mm'][theo_mask], theo_data['force_total'][theo_mask], 'orange')
                     if opt_results is not None:
-                        _add_path_arrows(opt_data['position'][opt_mask], opt_data['force_total'][opt_mask], 'purple')
+                        _add_path_arrows(opt_data['position_mm'][opt_mask], opt_data['force_total'][opt_mask], 'purple')
                     ax.set_xlim(full_pos.min() - pos_margin, full_pos.max() + pos_margin)
                     ax.set_ylim(full_force.min() - force_margin, full_force.max() + force_margin)
-                    ax.set_xlabel("Excursion (m)")
+                    ax.set_xlabel("Excursion (mm)")
                     ax.set_ylabel("Force (N)")
                     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:10.3g}"))
                     fig.subplots_adjust(left=0.16, right=0.99, bottom=0.16, top=0.98)
