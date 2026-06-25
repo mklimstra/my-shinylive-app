@@ -34,15 +34,14 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
 
         # Excitation and Activation Dynamics
         excitation = np.where((t >= onset_time) & (t <= offset_time), 1 * act_pct, 0)
-        da_dt = np.zeros(len(t))
         activation = np.zeros(len(t))
 
         for i in range(1, len(t)):
-            if excitation[i - 1] >= activation[i - 1]:
-                da_dt[i] = (excitation[i - 1] - activation[i - 1]) / tau_a
-            else:
-                da_dt[i] = (excitation[i - 1] - activation[i - 1]) / tau_d
-            activation[i] = activation[i - 1] + da_dt[i] * dt
+            u = excitation[i - 1]
+            a = activation[i - 1]
+            tau = tau_a if u >= a else tau_d
+            # Exact solution to first-order ODE: prevents overshoot regardless of dt/tau ratio
+            activation[i] = u + (a - u) * np.exp(-dt / tau)
 
         # Pennation and muscle length
         penn = np.arcsin(w / (position + L0))
