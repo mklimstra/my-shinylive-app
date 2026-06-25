@@ -24,8 +24,8 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         k_shape = 0.5
         w = L0 * np.sin(penn0)
 
-        # Time and cycle percentage (single full cycle)
-        t = np.arange(0, (1 / freq) + dt, dt)
+        # Time and cycle percentage (125% of cycle)
+        t = np.arange(0, 1.25 * (1 / freq) + dt, dt)
         cycle_pct = t * freq * 100
 
         # Position
