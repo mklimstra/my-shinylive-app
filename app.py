@@ -72,11 +72,10 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
         work_actual = np.sum(work)
         work_positive = np.sum(work[work > 0])
         work_negative = np.sum(work[work < 0])
-        active_mask = (t >= onset_time) & (t <= offset_time)
-        if np.any(active_mask):
-            power_actual = np.mean(power[active_mask])
-        else:
-            power_actual = np.mean(power)
+        # Cycle-averaged mean power = net work per cycle / cycle period
+        power_actual = work_actual * freq
+        power_positive = work_positive * freq
+        power_negative = work_negative * freq
 
         # Data to return
         sim_data = pd.DataFrame({
@@ -97,7 +96,9 @@ def thelen_muscle(onoff, freq, excursion, L0, F0, Vx, af, tau_a, tau_d):
             'work_actual': work_actual,
             'work_positive': work_positive,
             'work_negative': work_negative,
-            'power_actual': power_actual
+            'power_actual': power_actual,
+            'power_positive': power_positive,
+            'power_negative': power_negative,
         }
     except Exception as e:
         print(f"Error in thelen_muscle: {e}")
@@ -198,11 +199,12 @@ def run_simulation():
             input.deactivation_time()
         )
 
-    # Theoretical muscle parameters (instantaneous activation/deactivation and no onoff)
+    # Theoretical muscle parameters (instantaneous activation/deactivation, optimal timing)
     theoretical_params = muscle_params.copy()
-    theoretical_params['onoff'] = [25, 75]  # No onset or offset
-    theoretical_params['tau_a'] = 0.5  # No activation time
-    theoretical_params['tau_d'] = 1  # No deactivation time
+    theoretical_params['onoff'] = [25, 75]  # Active only during shortening phase
+    # Use near-zero time constants so exp(-dt/tau) → 0: effectively a step function
+    theoretical_params['tau_a'] = 0.001  # ~0.001 ms → instantaneous activation
+    theoretical_params['tau_d'] = 0.001  # ~0.001 ms → instantaneous deactivation
     
     # Calculate theoretical results with zero onset/offset and instantaneous activation/deactivation
     theoretical_results = thelen_muscle(**theoretical_params)
@@ -424,13 +426,17 @@ with ui.card():
                     round(opt['work_positive'], 4),
                     round(opt['work_negative'], 4),
                     round(opt['power_actual'], 4),
-                ] if opt is not None else ["\u2014", "\u2014", "\u2014", "\u2014"]
+                    round(opt['power_positive'], 4),
+                    round(opt['power_negative'], 4),
+                ] if opt is not None else ["\u2014", "\u2014", "\u2014", "\u2014", "\u2014", "\u2014"]
                 headers = ["Metric", "Simulated", "Theoretical", "Optimized"]
                 rows = [
-                    ["Total Work (J)",    round(sim['work_actual'], 4),   round(theo['work_actual'], 4),   opt_col[0]],
-                    ["Positive Work (J)", round(sim['work_positive'], 4), round(theo['work_positive'], 4), opt_col[1]],
-                    ["Negative Work (J)", round(sim['work_negative'], 4), round(theo['work_negative'], 4), opt_col[2]],
-                    ["Mean Power (W)",    round(sim['power_actual'], 4),  round(theo['power_actual'], 4),  opt_col[3]],
+                    ["Total Work (J)",     round(sim['work_actual'], 4),    round(theo['work_actual'], 4),    opt_col[0]],
+                    ["Positive Work (J)",  round(sim['work_positive'], 4),  round(theo['work_positive'], 4),  opt_col[1]],
+                    ["Negative Work (J)",  round(sim['work_negative'], 4),  round(theo['work_negative'], 4),  opt_col[2]],
+                    ["Mean Power (W)",     round(sim['power_actual'], 4),   round(theo['power_actual'], 4),   opt_col[3]],
+                    ["Positive Power (W)", round(sim['power_positive'], 4), round(theo['power_positive'], 4), opt_col[4]],
+                    ["Negative Power (W)", round(sim['power_negative'], 4), round(theo['power_negative'], 4), opt_col[5]],
                 ]
                 th = "style='padding:8px 14px; border:1px solid #ccc; background:#f0f0f0; font-weight:bold; text-align:center; white-space:nowrap;'"
                 td = "style='padding:8px 14px; border:1px solid #ccc; text-align:center;'"
